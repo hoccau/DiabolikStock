@@ -7,11 +7,13 @@ Logiciel de gestion du matériel pour l'association Diabolo
 """
 
 from PyQt5 import QtSql
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QApplication, qApp, QMainWindow, QAction, QTabWidget, QTableView, 
+    QAbstractItemView)
 from PyQt5.QtGui import QIcon
 from models import Models
 from db import Query
-from views import *
+from views import AddMalle, AddMalleType, AddInput, AddFournisseur
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -31,7 +33,14 @@ class MainWindow(QMainWindow):
 
         exitAction = self._add_action('&Quitter', qApp.quit, 'Ctrl+Q')
         connectAction = self._add_action('&Connection', self.connect_db, 'Ctrl+C')
-        addFournisseurAction = self._add_action('&Fournisseur', self.add_fournisseur)
+        self.db_actions = {
+            'add_fournisseur': self._add_action(
+                '&Fournisseur', self.add_fournisseur),
+            'add_produit': self._add_action('&Produit', self.add_input),
+            'add_malle_type': self._add_action(
+                '&Malle type', self.add_malle_type),
+            'add_malle': self._add_action('&Malle', self.add_malle)
+        }
 
         fileMenu = menubar.addMenu('&Fichier')
         fileMenu.addAction(connectAction)
@@ -39,7 +48,10 @@ class MainWindow(QMainWindow):
         edit_menu = menubar.addMenu('&Édition')
         view_menu = menubar.addMenu('&Vue')
         addMenu = menubar.addMenu('&Ajouter')
-        addMenu.addAction(addFournisseurAction)
+        addMenu.addAction(self.db_actions['add_fournisseur'])
+        addMenu.addAction(self.db_actions['add_produit'])
+        addMenu.addAction(self.db_actions['add_malle_type'])
+        addMenu.addAction(self.db_actions['add_malle'])
 
         self.statusBar().showMessage('')
         self.setMinimumSize(850,300)
@@ -51,7 +63,8 @@ class MainWindow(QMainWindow):
         
         self.tabs = QTabWidget()
         self.tables = {
-            'fournisseurs': self._add_table_model(self.models.fournisseurs, 'fournisseurs')
+            'fournisseurs': self._add_table_model(self.models.fournisseurs, 'fournisseurs'),
+            'produits': self._add_table_model(self.models.produits, 'produits')
             }
         
         self.setCentralWidget(self.tabs)
@@ -87,11 +100,17 @@ class MainWindow(QMainWindow):
     def set_infos(self):
         InfosCentreDialog(self)
 
-    def add_object(self):
-        self.form = ProductForm(self)
-    
     def add_fournisseur(self):
         AddFournisseur(self, self.models.fournisseurs)
+
+    def add_input(self):
+        AddInput(self, self.models.produits)
+
+    def add_malle(self):
+        AddMalle(self, self.models.malles)
+    
+    def add_malle_type(self):
+        AddMalle(self, self.models.malles_types)
 
 if __name__ == '__main__':
     import sys, os

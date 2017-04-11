@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*- 
 
 from PyQt5.QtWidgets import (
-    QDialog, QLineEdit, QTextEdit, QPushButton, QDataWidgetMapper, QFormLayout,
-    QDialogButtonBox, QMessageBox)
+    QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
+    QFormLayout, QDialogButtonBox, QMessageBox)
 from PyQt5.QtCore import QRegExp, QDate, QByteArray
 from PyQt5.QtGui import QRegExpValidator, QIntValidator
 from collections import OrderedDict
@@ -41,35 +41,54 @@ class Form(QDialog):
         self.quitButton.clicked.connect(self.reject)
         self.show()
 
-class Fournisseur(QDialog):
+class MappedQDialog(QDialog):
     def __init__(self, parent, model):
-        super(Fournisseur, self).__init__(parent)
+        super(MappedQDialog, self).__init__(parent)
 
         self.model = model
-
-        self.widgets = OrderedDict([
-        #('id', QSpinBox()),
-        ('nom', QLineEdit()),
-        ('email', QLineEdit()),
-        ('phone', QLineEdit()),
-        ('observation', QTextEdit()),
-        ])
-
+        self.widgets = OrderedDict()
         self.mapper = QDataWidgetMapper(self)
         self.mapper.setModel(self.model)
+
+    def init_add_dialog(self):
+        self.init_mapping()
+        self.auto_layout()
+        self.auto_default_buttons()
+        self.exec_()
+
+    def init_mapping(self):
         for field, widget in self.widgets.items():
-            self.mapper.addMapping(widget, model.fieldIndex(field))
-            logging.debug(
-                str(field) + ' is mapped:'\
-                + str(self.mapper.mappedSection(widget)))
+            self.mapper.addMapping(widget, self.model.fieldIndex(field))
+        
+    def auto_layout(self):
+        self.layout = QFormLayout(self)
+        for k, v in self.widgets.items():
+            self.layout.addRow(k, v)
+        
+    def auto_default_buttons(self):
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            self)
+        buttons.accepted.connect(self.submited)
+        buttons.rejected.connect(self.reject)
+        self.layout.addRow(buttons)
+
+
+class Fournisseur(MappedQDialog):
+    def __init__(self, parent, model):
+        super(Fournisseur, self).__init__(parent, model)
+
+        self.widgets['nom'] = QLineEdit()
+        self.widgets['email'] = QLineEdit()
+        self.widgets['phone'] = QLineEdit()
+        self.widgets['observation'] = QTextEdit()
+        self.init_mapping()
+
         self.mapper.addMapping(
             self.widgets['observation'],
             model.fieldIndex('observation'),
             QByteArray(b'plaintext')) #because default is tohtml
-        
-        self.layout = QFormLayout(self)
-        for k, v in self.widgets.items():
-            self.layout.addRow(k, v)
+        self.auto_layout()
 
     def verif(self):
         if not self.widgets['nom'].text():
@@ -86,31 +105,64 @@ class Fournisseur(QDialog):
 class AddFournisseur(Fournisseur):
     def __init__(self, parent, model):
         super(AddFournisseur, self).__init__(parent, model)
-        
+            
         inserted = self.model.insertRow(self.model.rowCount())
         if not inserted:
-            logging.warning('Row not inserted in model {0}'.format(self.model))
+            logging.warning(
+                'Row not inserted in model {0}'.format(self.model))
         self.mapper.toLast()
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            self)
-        buttons.accepted.connect(self.submited)
-        buttons.rejected.connect(self.reject)
-
-        self.layout.addRow(buttons)
-
+        self.auto_default_buttons()
         self.exec_()
 
     def submited(self):
         if self.verif():
             submited = self.mapper.submit()
+            self.model.select()
             if not submited:
                 logging.warning("oups, le submit n'a pas fonctionné")
                 db_error = self.model.lastError().databaseText()
                 if db_error:
                     logging.info(db_error)
                 QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
+                self.reject()
             if submited:
                 logging.info("Le fournisseur a bien été enregistré")
                 self.accept()
+
+class AddInput(MappedQDialog):
+    def __init__(self, parent, model):
+        super(AddInput, self).__init__(parent, model)
+
+        self.widgets['Fournisseur'] = QLineEdit()
+        self.widgets['nom du produit'] = QLineEdit()
+        self.widgets['date_achat'] = QDateEdit()
+        self.widgets['price'] = QLineEdit()
+
+        self.init_add_dialog()
+
+    def submited(self):
+        pass
+
+class AddMalle(MappedQDialog):
+    def __init__(self, parent, model):
+        super(AddMalle, self).__init__(parent, model)
+
+        self.widgets['reference'] = QLineEdit()
+        self.widgets['type_id'] = QLineEdit()
+        
+        self.init_add_dialog()
+
+    def submited(self):
+        pass
+
+class AddMalleType(MappedQDialog):
+    def __init__(self, parent, model):
+        super(AddMalleType, self).__init__(parent, model)
+
+        self.widgets['denomination'] = QLineEdit()
+        self.widgets['observation'] = QLineEdit()
+        
+        self.init_add_dialog()
+
+    def submited(self):
+        pass

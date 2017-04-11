@@ -30,21 +30,19 @@ CREATE TABLE reservations(
 	FOREIGN KEY (sejour_id) REFERENCES sejours(id)
 	);
 CREATE TABLE malles_types(
-	reference varchar(6) NOT NULL PRIMARY KEY,
+    id serial PRIMARY KEY,
 	denomination varchar(20),
-	d_height real,
-	d_width real,
-	d_depth real,
 	observation varchar(30)
 	);
 CREATE TABLE malles(
-	id serial PRIMARY KEY,
-	type_ref varchar(6),
-	FOREIGN KEY (type_ref) REFERENCES malles_types(reference)
+	reference varchar(6) NOT NULL PRIMARY KEY,
+	type_id integer,
+    observation varchar(300),
+	FOREIGN KEY (type_id) REFERENCES malles_types(id)
 	);
 CREATE TABLE reservations_malles_rel(
 	reservation_id integer,
-	malle_id integer REFERENCES malles(id)
+	malle_ref varchar(6) REFERENCES malles(reference)
 	);
 CREATE TABLE fournisseurs(
 	id serial PRIMARY KEY,
@@ -54,51 +52,57 @@ CREATE TABLE fournisseurs(
 	observation varchar(300),
     UNIQUE(nom)
 	);
-CREATE TABLE objets(
+CREATE TABLE produits(
 	id serial PRIMARY KEY,
-	nom varchar(30),
-	price real,
-	etat varchar(40),
-	quantity integer
+	nom varchar(30) NOT NULL,
+    UNIQUE(nom)
 	);
+CREATE TABLE etats(
+    id serial PRIMARY KEY,
+    etat varchar(100)
+    );
 CREATE TABLE contenu_malles(
-	object_id integer NOT NULL,
-	malle_id integer NOT NULL,
-	PRIMARY KEY (object_id, malle_id),
-	FOREIGN KEY (object_id) REFERENCES objets(id),
-	FOREIGN KEY (malle_id) REFERENCES malles(id)
+	malle_ref varchar(6) NOT NULL,
+	produit_id integer NOT NULL,
+    quantity integer NOT NULL,
+    etat_id integer NOT NULL,
+	PRIMARY KEY (produit_id, malle_ref),
+	FOREIGN KEY (produit_id) REFERENCES produits(id),
+	FOREIGN KEY (malle_ref) REFERENCES malles(reference),
+	FOREIGN KEY (etat_id) REFERENCES etats(id)
 	);
 CREATE TABLE contenu_type(
-	type_ref varchar(6),
-	objet_id integer,
+	type_id integer,
+	produit_id integer,
 	quantity integer,
-	FOREIGN KEY (type_ref) REFERENCES malles_types(reference),
-	FOREIGN KEY (objet_id) REFERENCES objets(id)
+	FOREIGN KEY (type_id) REFERENCES malles_types(id),
+	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);
 CREATE TABLE commandes(
 	id serial PRIMARY KEY,
 	fournisseur_id integer NOT NULL,
 	produit_id integer NOT NULL,
+    commande_number varchar(50),
 	prix real,
 	FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id),
-	FOREIGN KEY (produit_id) REFERENCES objets(id)
+	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);
 
 -- Relationnal tables
-CREATE TABLE fournisseurs_produits_rel(
+CREATE TABLE inputs(
 	id serial PRIMARY KEY,
 	fournisseur_id integer,
-	objet_id integer,
-	current_price real,
-	reference varchar(20),
+	produit_id integer NOT NULL,
+    date_achat date NOT NULL,
+	price real,
 	FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id),
-	FOREIGN KEY (objet_id) REFERENCES objets(id)
+	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);
 CREATE TABLE sejours_malles_types_rel(
 	id serial PRIMARY KEY,
 	sejour_id integer NOT NULL,
-	malle_ref varchar(6) NOT NULL,
+	malle_type_id integer NOT NULL,
 	FOREIGN KEY (sejour_id) REFERENCES sejours(id),
-	FOREIGN KEY (malle_ref) REFERENCES malles_types(reference)
+	FOREIGN KEY (malle_type_id) REFERENCES malles_types(id)
 	);
 
