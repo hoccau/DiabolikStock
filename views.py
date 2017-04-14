@@ -49,12 +49,20 @@ class MappedQDialog(QDialog):
         self.widgets = OrderedDict()
         self.mapper = QDataWidgetMapper(self)
         self.mapper.setModel(self.model)
-
+        
     def init_add_dialog(self):
         self.init_mapping()
         self.auto_layout()
         self.auto_default_buttons()
+        self.add_row()
         self.exec_()
+        
+    def add_row(self):
+        inserted = self.model.insertRow(self.model.rowCount())
+        if not inserted:
+            logging.warning(
+                'Row not inserted in model {0}'.format(self.model))
+        self.mapper.toLast()
 
     def init_mapping(self):
         for field, widget in self.widgets.items():
@@ -70,9 +78,8 @@ class MappedQDialog(QDialog):
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
             self)
         buttons.accepted.connect(self.submited)
-        buttons.rejected.connect(self.reject)
+        buttons.rejected.connect(self.undo)
         self.layout.addRow(buttons)
-
 
 class Fournisseur(MappedQDialog):
     def __init__(self, parent, model):
@@ -82,12 +89,14 @@ class Fournisseur(MappedQDialog):
         self.widgets['email'] = QLineEdit()
         self.widgets['phone'] = QLineEdit()
         self.widgets['observation'] = QTextEdit()
+
         self.init_mapping()
 
         self.mapper.addMapping(
             self.widgets['observation'],
-            model.fieldIndex('observation'),
-            QByteArray(b'plaintext')) #because default is tohtml
+            self.model.fieldIndex('observation'),
+            QByteArray(b'plainText')) #because default is tohtml
+
         self.auto_layout()
 
     def verif(self):
@@ -106,28 +115,29 @@ class AddFournisseur(Fournisseur):
     def __init__(self, parent, model):
         super(AddFournisseur, self).__init__(parent, model)
             
-        inserted = self.model.insertRow(self.model.rowCount())
-        if not inserted:
-            logging.warning(
-                'Row not inserted in model {0}'.format(self.model))
-        self.mapper.toLast()
         self.auto_default_buttons()
+        self.add_row()
         self.exec_()
 
     def submited(self):
         if self.verif():
+            logging.debug(self.widgets['observation'].toPlainText())
             submited = self.mapper.submit()
-            self.model.select()
             if not submited:
-                logging.warning("oups, le submit n'a pas fonctionné")
-                db_error = self.model.lastError().databaseText()
+                db_error = self.model.lastError().text()
                 if db_error:
-                    logging.info(db_error)
+                    logging.warning(self.model.tableName()+' '+db_error)
                 QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
+                self.model.select()
                 self.reject()
             if submited:
+                self.model.select()
                 logging.info("Le fournisseur a bien été enregistré")
                 self.accept()
+
+    def undo(self):
+        self.model.revertAll()
+        self.reject()
 
 class AddInput(MappedQDialog):
     def __init__(self, parent, model):
