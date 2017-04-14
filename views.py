@@ -90,6 +90,11 @@ class Fournisseur(MappedQDialog):
         self.widgets['phone'] = QLineEdit()
         self.widgets['observation'] = QTextEdit()
 
+        self.widgets['email'].setValidator(QRegExpValidator(
+            QRegExp('^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')))
+        self.widgets['phone'].setValidator(QRegExpValidator(
+            QRegExp('^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$')))
+
         self.init_mapping()
 
         self.mapper.addMapping(
