@@ -96,7 +96,6 @@ CREATE TABLE inputs(
 	price real,
 	FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id),
 	FOREIGN KEY (produit_id) REFERENCES produits(id)
-    PRIMARY KEY (fournisseur_id, produit_id)
 	);
 CREATE TABLE sejours_malles_types_rel(
 	sejour_id integer,

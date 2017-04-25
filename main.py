@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon
 from models import Models
 from db import Query
-from views import AddMalle, AddMalleType, AddInput, AddFournisseur
+from views import AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -36,7 +36,8 @@ class MainWindow(QMainWindow):
         self.db_actions = {
             'add_fournisseur': self._add_action(
                 '&Fournisseur', self.add_fournisseur),
-            'add_produit': self._add_action('&Produit', self.add_input),
+            'add_produit': self._add_action('&Produit', self.add_product),
+            'add_input': self._add_action('&Entrée de produit', self.add_input),
             'add_malle_type': self._add_action(
                 '&Malle type', self.add_malle_type),
             'add_malle': self._add_action('&Malle', self.add_malle)
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.db_actions['add_fournisseur'])
         addMenu.addAction(self.db_actions['add_produit'])
+        addMenu.addAction(self.db_actions['add_input'])
         addMenu.addAction(self.db_actions['add_malle_type'])
         addMenu.addAction(self.db_actions['add_malle'])
 
@@ -102,6 +104,9 @@ class MainWindow(QMainWindow):
 
     def add_fournisseur(self):
         AddFournisseur(self, self.models.fournisseurs)
+
+    def add_product(self):
+        AddProduct(self, self.models.produits)
 
     def add_input(self):
         AddInput(self, self.models.inputs)

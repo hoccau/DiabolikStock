@@ -147,6 +147,20 @@ class AddFournisseur(Fournisseur):
                 logging.info("Le fournisseur a bien été enregistré")
                 self.accept()
 
+class AddProduct(MappedQDialog):
+    def __init__(self, parent, model):
+        super(AddProduct, self).__init__(parent, model)
+
+        self.widgets['nom'] = QLineEdit()
+        self.init_add_dialog()
+
+    def submited(self):
+        submited = self.mapper.submit()
+        if submited:
+            logging.info('produit added.')
+            self.accept()
+        else:
+            logging.warning(self.model.lastError().text())
 
 class AddInput(MappedQDialog):
     def __init__(self, parent, model):

@@ -14,6 +14,7 @@ class Models():
     
     def create_models(self):
         self.fournisseurs = Fournisseurs(None, self.db)
+        self.produits = Produits(None, self.db)
         self.malles_types = MallesTypes(None, self.db)
         self.malles = Malles(None, self.db)
         self.inputs = Inputs(None, self.db)
