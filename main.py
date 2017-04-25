@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         AddMalle(self, self.models.malles)
     
     def add_malle_type(self):
-        AddMalle(self, self.models.malles_types)
+        AddMalleType(self, self.models.malles_types)
 
 if __name__ == '__main__':
     import sys, os

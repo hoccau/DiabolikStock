@@ -219,21 +219,56 @@ class AddMalle(MappedQDialog):
         super(AddMalle, self).__init__(parent, model)
 
         self.widgets['reference'] = QLineEdit()
-        self.widgets['type_id'] = QLineEdit()
+        self.widgets['type_id'] = QComboBox()
+
+        type_model = self.model.relationModel(1)
+        logging.debug(type_model)
+        self.widgets['type_id'].setModel(type_model)
+        self.widgets['type_id'].setModelColumn(
+            type_model.fieldIndex('denomination'))
         
-        self.init_add_dialog()
+        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+        
+        self.mapper.addMapping(self.widgets['reference'], 0)
+        self.mapper.addMapping(self.widgets['type_id'], 1)
+
+        self.auto_layout()
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
 
     def submited(self):
-        pass
+        submited = self.mapper.submit()
+        if submited:
+            logging.info('Malle added.')
+            self.accept()
+        else:
+            logging.warning(self.model.lastError().text())
     
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
         super(AddMalleType, self).__init__(parent, model)
 
         self.widgets['denomination'] = QLineEdit()
-        self.widgets['observation'] = QLineEdit()
-        
-        self.init_add_dialog()
+        self.widgets['observation'] = QTextEdit()
+        self.widgets['denomination'].setPlaceholderText('ex: Pédagogique')
+        self.init_mapping()
+
+        self.mapper.addMapping(
+            self.widgets['observation'],
+            self.model.fieldIndex('observation'),
+            QByteArray(b'plainText')) #because default is tohtml
+
+        self.auto_layout()
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
 
     def submited(self):
-        pass
+        submited = self.mapper.submit()
+        if submited:
+            logging.info('Malle type added.')
+            self.accept()
+        else:
+            logging.warning(self.model.lastError().text())
+

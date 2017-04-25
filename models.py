@@ -50,7 +50,7 @@ class Malles(QSqlRelationalTableModel):
 
         self.setTable('malles')
         self.setRelation(
-            1, QSqlRelation('type_id', 'malles_type', 'denomination'))
+            1, QSqlRelation('malles_types', 'id', 'denomination'))
         self.select()
 
 class MallesTypes(QSqlTableModel):
