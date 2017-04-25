@@ -68,6 +68,8 @@ class MappedQDialog(QDialog):
     def init_mapping(self):
         for field, widget in self.widgets.items():
             self.mapper.addMapping(widget, self.model.fieldIndex(field))
+            if self.mapper.mappedSection(widget) == -1:
+                logging.warning('Widget '+field+' not mapped.')
         
     def auto_layout(self):
         self.layout = QFormLayout(self)
@@ -150,23 +152,39 @@ class AddInput(MappedQDialog):
     def __init__(self, parent, model):
         super(AddInput, self).__init__(parent, model)
 
-        self.widgets['Fournisseur'] = QComboBox()
-        self.widgets['nom du produit'] = QLineEdit()
+        self.widgets['fournisseur_id'] = QComboBox()
+        self.widgets['produit_id'] = QComboBox()
         self.widgets['date_achat'] = QDateEdit()
         self.widgets['price'] = QLineEdit()
 
         self.widgets['date_achat'].setDate(QDate.currentDate())
 
-        f_index = self.model.fieldIndex('fournisseur_id')
+        f_index = self.model.fieldIndex('fournisseur_id') #fails
         fournisseur_model = self.model.relationModel(1) #fournisseur_id col
+        produit_model = self.model.relationModel(2) #produit_id col
 
-        self.widgets['Fournisseur'].setModel(fournisseur_model)
-        self.widgets['Fournisseur'].setModelColumn(
+        self.widgets['fournisseur_id'].setModel(fournisseur_model)
+        self.widgets['fournisseur_id'].setModelColumn(
             fournisseur_model.fieldIndex('nom'))
+        self.widgets['produit_id'].setModel(produit_model)
+        self.widgets['produit_id'].setModelColumn(
+            produit_model.fieldIndex('nom'))
 
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
 
-        self.init_add_dialog()
+        self.mapper.addMapping(self.widgets['fournisseur_id'], 1)
+        self.mapper.addMapping(self.widgets['produit_id'], 2)
+        self.mapper.addMapping(self.widgets['date_achat'], 3)
+        self.mapper.addMapping(self.widgets['price'], 4)
+        
+        for key, widget in self.widgets.items():
+            if self.mapper.mappedSection(widget) == -1:
+                logging.warning(key+' is not mapped.')
+
+        self.auto_layout()
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
 
     def submited(self):
         submited = self.mapper.submit()
@@ -175,7 +193,9 @@ class AddInput(MappedQDialog):
             logging.info("L'entrée a bien été enregistrée")
             self.accept()
         if not submited:
-            db_error = self.model.lastError().text()
+            db_error = self.model.lastError().type()
+            last_query = self.model.query().lastError().type()
+            logging.debug(db_error)
             if db_error:
                 logging.warning(self.model.tableName()+' '+db_error)
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
