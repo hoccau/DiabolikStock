@@ -3,9 +3,10 @@
 
 from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
-    QFormLayout, QDialogButtonBox, QMessageBox)
+    QFormLayout, QDialogButtonBox, QMessageBox, QComboBox)
 from PyQt5.QtCore import QRegExp, QDate, QByteArray
 from PyQt5.QtGui import QRegExpValidator, QIntValidator
+from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
 import logging
 
@@ -80,6 +81,10 @@ class MappedQDialog(QDialog):
         buttons.accepted.connect(self.submited)
         buttons.rejected.connect(self.undo)
         self.layout.addRow(buttons)
+    
+    def undo(self):
+        self.model.revertAll()
+        self.reject()
 
 class Fournisseur(MappedQDialog):
     def __init__(self, parent, model):
@@ -140,23 +145,40 @@ class AddFournisseur(Fournisseur):
                 logging.info("Le fournisseur a bien été enregistré")
                 self.accept()
 
-    def undo(self):
-        self.model.revertAll()
-        self.reject()
 
 class AddInput(MappedQDialog):
     def __init__(self, parent, model):
         super(AddInput, self).__init__(parent, model)
 
-        self.widgets['Fournisseur'] = QLineEdit()
+        self.widgets['Fournisseur'] = QComboBox()
         self.widgets['nom du produit'] = QLineEdit()
         self.widgets['date_achat'] = QDateEdit()
         self.widgets['price'] = QLineEdit()
 
+        self.widgets['date_achat'].setDate(QDate.currentDate())
+
+        f_index = self.model.fieldIndex('fournisseur_id')
+        fournisseur_model = self.model.relationModel(1) #fournisseur_id col
+
+        self.widgets['Fournisseur'].setModel(fournisseur_model)
+        self.widgets['Fournisseur'].setModelColumn(
+            fournisseur_model.fieldIndex('nom'))
+
+        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+
         self.init_add_dialog()
 
     def submited(self):
-        pass
+        submited = self.mapper.submit()
+        if submited:
+            self.model.select()
+            logging.info("L'entrée a bien été enregistrée")
+            self.accept()
+        if not submited:
+            db_error = self.model.lastError().text()
+            if db_error:
+                logging.warning(self.model.tableName()+' '+db_error)
+            QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
 
 class AddMalle(MappedQDialog):
     def __init__(self, parent, model):
@@ -169,7 +191,7 @@ class AddMalle(MappedQDialog):
 
     def submited(self):
         pass
-
+    
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
         super(AddMalleType, self).__init__(parent, model)
