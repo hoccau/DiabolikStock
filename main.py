@@ -67,8 +67,9 @@ class MainWindow(QMainWindow):
         self.tables = {
             'fournisseurs': self._add_table_model(self.models.fournisseurs, 'fournisseurs'),
             'produits': self._add_table_model(self.models.inputs, 'inputs'),
+            'malles': self._add_table_model(self.models.malles, 'malles'),
             'malles_types': self._add_table_model(
-                self.models.malles_types, 'malles_types')
+                self.models.malles_types_with_malles, 'malles_types')
             }
         
         self.setCentralWidget(self.tabs)

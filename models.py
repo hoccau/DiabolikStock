@@ -19,6 +19,7 @@ class Models():
         self.malles = Malles(None, self.db)
         self.inputs = Inputs(None, self.db)
         self.contenu_type = ContenuType(None, self.db)
+        self.malles_types_with_malles = MallesTypesWithMalles()
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -61,6 +62,20 @@ class MallesTypes(QSqlTableModel):
         self.setTable('malles_types')
         self.setHeaderData(1, Qt.Horizontal, "Dénomination")
         self.select()
+
+class MallesTypesWithMalles(QSqlQueryModel):
+    def __init__(self):
+        super(MallesTypesWithMalles, self).__init__()
+        self.select()
+
+    def select(self):
+        self.setQuery(
+            " SELECT denomination, string_agg(reference, ', ') "\
+            + "FROM malles_types "\
+            + "INNER JOIN malles ON malles.type_id = malles_types.id "\
+            + "GROUP BY denomination")
+        self.setHeaderData(0, Qt.Horizontal, "Dénomination")
+        self.setHeaderData(1, Qt.Horizontal, "Malles")
 
 class ContenuType(QSqlRelationalTableModel):
     def __init__(self, parent, db):
