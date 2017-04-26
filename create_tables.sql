@@ -18,7 +18,7 @@ CREATE TABLE sejours(
 	lieu_id integer,
 	directeur varchar(20),
 	nbr_enfants integer,
-	observation varchar(100),
+	observation varchar(255),
 	FOREIGN KEY (lieu_id) REFERENCES lieux(id)
 	);
 CREATE TABLE reservations(
@@ -26,18 +26,19 @@ CREATE TABLE reservations(
 	sejour_id integer,
 	date_start date,
 	date_end date,
-	observation varchar(30),
+	observation varchar(255),
 	FOREIGN KEY (sejour_id) REFERENCES sejours(id)
 	);
 CREATE TABLE malles_types(
     id serial PRIMARY KEY,
 	denomination varchar(20),
-	observation varchar(30)
+	observation varchar(255),
+    UNIQUE(denomination)
 	);
 CREATE TABLE malles(
 	reference varchar(6) PRIMARY KEY,
 	type_id integer,
-    observation varchar(300),
+    observation varchar(255),
 	FOREIGN KEY (type_id) REFERENCES malles_types(id)
 	);
 CREATE TABLE reservations_malles_rel(
@@ -49,7 +50,7 @@ CREATE TABLE fournisseurs(
 	nom varchar(30) NOT NULL,
 	email varchar(30),
 	phone varchar(14),
-	observation varchar(300),
+	observation varchar(255),
     UNIQUE(nom)
 	);
 CREATE TABLE produits(

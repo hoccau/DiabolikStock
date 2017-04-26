@@ -278,7 +278,11 @@ class AddMalleType(MappedQDialog):
             self.products = AddContenuType(self, self.contenu_type_model)
             self.products.exec_()
         else:
-            logging.warning(self.model.lastError().text())
+            error = self.model.lastError()
+            logging.warning(error.text())
+            if error.nativeErrorCode() == '23505':
+                QMessageBox.warning(
+                    self, "Erreur", "Cette malle type semble déjà exister")
 
 class AddContenuType(QDialog):
     def __init__(self, parent, model):
