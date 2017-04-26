@@ -3,7 +3,8 @@
 
 from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
-    QFormLayout, QDialogButtonBox, QMessageBox, QComboBox)
+    QFormLayout, QDialogButtonBox, QMessageBox, QComboBox, QTableView, 
+    QGroupBox, QHBoxLayout, QVBoxLayout, QLabel)
 from PyQt5.QtCore import QRegExp, QDate, QByteArray
 from PyQt5.QtGui import QRegExpValidator, QIntValidator
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -249,6 +250,7 @@ class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
         super(AddMalleType, self).__init__(parent, model)
 
+        self.contenu_type_model = parent.models.contenu_type
         self.widgets['denomination'] = QLineEdit()
         self.widgets['observation'] = QTextEdit()
         self.widgets['denomination'].setPlaceholderText('ex: Pédagogique')
@@ -260,6 +262,7 @@ class AddMalleType(MappedQDialog):
             QByteArray(b'plainText')) #because default is tohtml
 
         self.auto_layout()
+
         self.auto_default_buttons()
         self.add_row()
         self.exec_()
@@ -267,8 +270,78 @@ class AddMalleType(MappedQDialog):
     def submited(self):
         submited = self.mapper.submit()
         if submited:
-            logging.info('Malle type added.')
+            #s = self.model.submitAll()
+            #logging.debug(s)
+            #logging.info('Malle type added.')
+            self.model.select()
             self.accept()
+            self.products = AddContenuType(self, self.contenu_type_model)
+            self.products.exec_()
         else:
             logging.warning(self.model.lastError().text())
+
+class AddContenuType(QDialog):
+    def __init__(self, parent, model):
+        super(AddContenuType, self).__init__(parent)
+
+        self.model = model
+        self.parent_record = parent.model.record(parent.model.rowCount() -1)
+        logging.debug(self.parent_record)
+        self.type_id = self.parent_record.value(0) + 1
+        self.model.setFilter("type_id = "+str(self.type_id))
+
+        self.title_label = QLabel(
+            "Contenu type d'une malle "+self.parent_record.value(1))
+
+        self.products_table = QTableView()
+        self.products_table.setModel(self.model)
+        self.products_table.setItemDelegate(QSqlRelationalDelegate())
+
+        self.add_button = QPushButton('+')
+        self.finish_button = QPushButton('Terminé')
+        
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.title_label)
+        self.layout.addWidget(self.products_table)
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.add_button)
+        buttons_layout.addWidget(self.finish_button)
+        self.layout.addLayout(buttons_layout)
+        self.setLayout(self.layout)
+        
+        self.add_button.clicked.connect(self.add_row)
+        self.finish_button.clicked.connect(self.terminated)
+        
+    def submit_row(self):
+        submited = self.model.submitAll()
+        if not submited:
+            error = self.model.lastError()
+            logging.warning(error.text())
+            if error.nativeErrorCode() == '23505':
+                QMessageBox.warning(
+                    self, "Erreur", "Ce produit semble déjà exister pour cette malle")
+            elif error.nativeErrorCode() == '23502':
+                QMessageBox.warning(
+                    self, "Erreur", "Êtes-vous sûr(e) d'avoir entré un nom?")
+            return False
+        else:
+            return True
+    
+    def add_row(self):
+        if self.model.isDirty():
+            submited = self.submit_row()
+        inserted = self.model.insertRow(self.model.rowCount())
+        record = self.model.record()
+        record.setValue('type_id', self.type_id)
+        record_is_set = self.model.setRecord(self.model.rowCount() -1, record)
+        if not inserted:
+            logging.warning(
+                'Row not inserted in model {0}'.format(self.model))
+
+    def terminated(self):
+        if self.model.isDirty():
+            submited = self.submit_row()
+            if not submited:
+                return False
+        self.close()
 

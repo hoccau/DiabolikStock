@@ -18,6 +18,7 @@ class Models():
         self.malles_types = MallesTypes(None, self.db)
         self.malles = Malles(None, self.db)
         self.inputs = Inputs(None, self.db)
+        self.contenu_type = ContenuType(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -58,8 +59,17 @@ class MallesTypes(QSqlTableModel):
         super(MallesTypes, self).__init__(parent, db)
 
         self.setTable('malles_types')
-        self.setHeaderData(0, Qt.Horizontal, "Référence")
         self.setHeaderData(1, Qt.Horizontal, "Dénomination")
+        self.select()
+
+class ContenuType(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super(ContenuType, self).__init__(parent, db)
+        
+        self.setTable('contenu_type')
+        self.setRelation(
+            1, QSqlRelation('produits', 'id', 'nom'))
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
 class ExempleModel(QSqlQueryModel):

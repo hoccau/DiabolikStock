@@ -66,7 +66,9 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.tables = {
             'fournisseurs': self._add_table_model(self.models.fournisseurs, 'fournisseurs'),
-            'produits': self._add_table_model(self.models.inputs, 'inputs')
+            'produits': self._add_table_model(self.models.inputs, 'inputs'),
+            'malles_types': self._add_table_model(
+                self.models.malles_types, 'malles_types')
             }
         
         self.setCentralWidget(self.tabs)
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(
-        logging.Formatter('%(levelname)s :: %(message)s'))
+        logging.Formatter('%(levelname)s::%(module)s:%(lineno)d :: %(message)s'))
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stdout_handler)
