@@ -7,13 +7,13 @@ Logiciel de gestion du matériel pour l'association Diabolo
 """
 
 from PyQt5 import QtSql
-from PyQt5.QtWidgets import (
-    QApplication, qApp, QMainWindow, QAction, QTabWidget, QTableView, 
-    QAbstractItemView)
+from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction
 from PyQt5.QtGui import QIcon
-from models import Models
+from models import Models, Malles, MallesTypesWithMalles, Fournisseurs, Produits
 from db import Query
-from views import AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct
+from views import (
+    AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
+    DisplayTableViewDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -40,7 +40,12 @@ class MainWindow(QMainWindow):
             'add_input': self._add_action('&Entrée de produit', self.add_input),
             'add_malle_type': self._add_action(
                 '&Malle type', self.add_malle_type),
-            'add_malle': self._add_action('&Malle', self.add_malle)
+            'add_malle': self._add_action('&Malle', self.add_malle),
+            'view_malles':self._add_action('&Malles', self.display_malles),
+            'view_malles_types':self._add_action(
+                '&Types de malles', self.display_malles_types),
+            'view_fournisseurs':self._add_action('&Fournisseurs', self.display_fournisseurs),
+            'view_produits':self._add_action('&Produits', self.display_produits)
         }
 
         fileMenu = menubar.addMenu('&Fichier')
@@ -48,6 +53,10 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(exitAction)
         edit_menu = menubar.addMenu('&Édition')
         view_menu = menubar.addMenu('&Vue')
+        view_menu.addAction(self.db_actions['view_malles'])
+        view_menu.addAction(self.db_actions['view_malles_types'])
+        view_menu.addAction(self.db_actions['view_fournisseurs'])
+        view_menu.addAction(self.db_actions['view_produits'])
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.db_actions['add_fournisseur'])
         addMenu.addAction(self.db_actions['add_produit'])
@@ -62,25 +71,8 @@ class MainWindow(QMainWindow):
         self.models = False
         self.db = Query(self)
         self.connect_db()
-        
-        self.tabs = QTabWidget()
-        self.tables = {
-            'fournisseurs': self._add_table_model(self.models.fournisseurs, 'fournisseurs'),
-            'produits': self._add_table_model(self.models.inputs, 'inputs'),
-            'malles': self._add_table_model(self.models.malles, 'malles'),
-            'malles_types': self._add_table_model(
-                self.models.malles_types_with_malles, 'malles_types')
-            }
-        
-        self.setCentralWidget(self.tabs)
 
-    def _add_table_model(self, model, name, size=None):
-        table = QTableView(self)
-        table.setModel(model)
-        table.setItemDelegate(QSqlRelationalDelegate())
-        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tabs.addTab(table, name)
-        return table
+        self.setCentralWidget(StartupView(self))
 
     def _add_action(self, name, function_name, shortcut=None):
         action = QAction(name, self)
@@ -119,6 +111,19 @@ class MainWindow(QMainWindow):
     
     def add_malle_type(self):
         AddMalleType(self, self.models.malles_types)
+
+    def display_malles(self):
+        model = Malles(self, self.db.db)
+        DisplayTableViewDialog(self, model)
+
+    def display_malles_types(self):
+        DisplayTableViewDialog(self, MallesTypesWithMalles())
+
+    def display_fournisseurs(self):
+        DisplayTableViewDialog(self, Fournisseurs(self, self.db.db))
+
+    def display_produits(self):
+        DisplayTableViewDialog(self, Produits(self, self.db.db))
 
 if __name__ == '__main__':
     import sys, os

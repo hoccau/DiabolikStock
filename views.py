@@ -3,13 +3,64 @@
 
 from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
-    QFormLayout, QDialogButtonBox, QMessageBox, QComboBox, QTableView, 
-    QGroupBox, QHBoxLayout, QVBoxLayout, QLabel)
-from PyQt5.QtCore import QRegExp, QDate, QByteArray
-from PyQt5.QtGui import QRegExpValidator, QIntValidator
+    QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox,
+    QTableView, QAbstractItemView, QGroupBox, QHBoxLayout, QVBoxLayout, 
+    QLabel, QWidget)
+from PyQt5.QtCore import QRegExp, QDate, QByteArray, QSize
+from PyQt5.QtGui import QRegExpValidator, QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
 import logging
+
+class StartupView(QWidget):
+    def __init__(self, parent):
+        super(StartupView, self).__init__(parent)
+        
+        self.grid = QGridLayout()
+
+        malle_button = self._create_button('caisse.png', 'Nouvelle malle')
+        malle_type_button = self._create_button('caisse_type.png', 'Nouveau type')
+        fournisseur_button = self._create_button('fournisseur.png', 'Nouveau fournisseur')
+        input_button = self._create_button('input.png', 'Entrée de Produit')
+        
+        self.grid.addWidget(malle_button, 0, 0)
+        self.grid.addWidget(malle_type_button, 0, 1)
+        self.grid.addWidget(fournisseur_button, 1, 0)
+        self.grid.addWidget(input_button, 1, 1)
+
+        self.setLayout(self.grid)
+
+        malle_button.clicked.connect(parent.add_malle)
+        malle_type_button.clicked.connect(parent.add_malle_type)
+        input_button.clicked.connect(parent.add_input)
+        fournisseur_button.clicked.connect(parent.add_fournisseur)
+
+    def _create_button(self, image, text):
+        button = QPushButton()
+        button.setIcon(QIcon('images/'+image))
+        button.setIconSize(QSize(127, 100))
+        button.setText(text)
+        return button
+
+class DisplayTableViewDialog(QDialog):
+    def __init__(self, parent, model):
+        super(DisplayTableViewDialog, self).__init__(parent)
+        
+        view = QTableView(self)
+        view.setModel(model)
+        view.setItemDelegate(QSqlRelationalDelegate())
+        view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        close_button = QPushButton('Fermer')
+
+        layout = QVBoxLayout()
+        layout.addWidget(view)
+        layout.addWidget(close_button)
+        self.setLayout(layout)
+
+        close_button.clicked.connect(self.accept)
+
+        self.exec_()
 
 class Form(QDialog):
     """Abstract class not used for the moment"""
