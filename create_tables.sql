@@ -97,6 +97,7 @@ CREATE TABLE inputs(
 	produit_id integer NOT NULL,
     date_achat date NOT NULL,
 	price real,
+    quantity integer NOT NULL,
 	FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id),
 	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);

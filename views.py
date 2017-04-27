@@ -3,11 +3,12 @@
 
 from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
-    QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox,
-    QTableView, QAbstractItemView, QGroupBox, QHBoxLayout, QVBoxLayout, 
-    QLabel, QWidget)
-from PyQt5.QtCore import QRegExp, QDate, QByteArray, QSize
-from PyQt5.QtGui import QRegExpValidator, QIntValidator, QIcon
+    QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
+    QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
+    QVBoxLayout, QLabel, QWidget)
+from PyQt5.QtCore import QDate, QByteArray, QSize
+from validators import EmailValidator, PhoneValidator
+from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
 import logging
@@ -61,38 +62,6 @@ class DisplayTableViewDialog(QDialog):
         close_button.clicked.connect(self.accept)
 
         self.exec_()
-
-class Form(QDialog):
-    """Abstract class not used for the moment"""
-    def __init__(self, parent=None):
-        super(Form, self).__init__(parent)
-        self.parent = parent
-        self.model = parent.model
-        self.grid = QGridLayout()
-        self.field_index = 0
-        self.submitButton = QPushButton("Enregistrer")
-        self.quitButton = QPushButton("Fermer")
-        
-    def add_field(self, label_name, widget):
-        self.field_index += 1
-        self.grid.addWidget(QLabel(label_name), self.field_index, 0)
-        self.grid.addWidget(widget, self.field_index, 1)
-
-    def add_layout(self, label_name, layout):
-        self.field_index += 1
-        self.grid.addWidget(QLabel(label_name), self.field_index, 0)
-        self.grid.addLayout(layout, self.field_index, 1)
-
-    def initUI(self):
-        self.field_index += 1
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.submitButton)
-        buttons_layout.addWidget(self.quitButton)
-        self.grid.addLayout(buttons_layout, 100, 1) #100 means at the end
-        self.setLayout(self.grid)
-        self.submitButton.clicked.connect(self.submit_datas)
-        self.quitButton.clicked.connect(self.reject)
-        self.show()
 
 class MappedQDialog(QDialog):
     def __init__(self, parent, model):
@@ -149,10 +118,8 @@ class Fournisseur(MappedQDialog):
         self.widgets['phone'] = QLineEdit()
         self.widgets['observation'] = QTextEdit()
 
-        self.widgets['email'].setValidator(QRegExpValidator(
-            QRegExp('^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')))
-        self.widgets['phone'].setValidator(QRegExpValidator(
-            QRegExp('^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$')))
+        self.widgets['email'].setValidator(EmailValidator)
+        self.widgets['phone'].setValidator(PhoneValidator)
 
         self.init_mapping()
 
@@ -185,7 +152,6 @@ class AddFournisseur(Fournisseur):
 
     def submited(self):
         if self.verif():
-            logging.debug(self.widgets['observation'].toPlainText())
             submited = self.mapper.submit()
             if not submited:
                 db_error = self.model.lastError().text()
@@ -221,36 +187,74 @@ class AddInput(MappedQDialog):
         self.widgets['fournisseur_id'] = QComboBox()
         self.widgets['produit_id'] = QComboBox()
         self.widgets['date_achat'] = QDateEdit()
-        self.widgets['price'] = QLineEdit()
+        self.widgets['price'] = QDoubleSpinBox()
+        self.widgets['quantity'] = QSpinBox()
+
+        add_fournisseur_button = QPushButton('+')
+        add_produit_button = QPushButton('+')
+        add_fournisseur_button.clicked.connect(self.add_new_fournisseur)
+        add_produit_button.clicked.connect(self.add_new_produit)
 
         self.widgets['date_achat'].setDate(QDate.currentDate())
 
         f_index = self.model.fieldIndex('fournisseur_id') #fails
-        fournisseur_model = self.model.relationModel(1) #fournisseur_id col
-        produit_model = self.model.relationModel(2) #produit_id col
+        self.fournisseur_model = self.model.relationModel(1) #fournisseur_id col
+        self.produit_model = self.model.relationModel(2) #produit_id col
 
-        self.widgets['fournisseur_id'].setModel(fournisseur_model)
+        self.widgets['fournisseur_id'].setModel(self.fournisseur_model)
         self.widgets['fournisseur_id'].setModelColumn(
-            fournisseur_model.fieldIndex('nom'))
-        self.widgets['produit_id'].setModel(produit_model)
+            self.fournisseur_model.fieldIndex('nom'))
+        self.widgets['produit_id'].setModel(self.produit_model)
         self.widgets['produit_id'].setModelColumn(
-            produit_model.fieldIndex('nom'))
+            self.produit_model.fieldIndex('nom'))
 
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
 
+        # We set the mapping by number col because fiedIndex method fails
         self.mapper.addMapping(self.widgets['fournisseur_id'], 1)
         self.mapper.addMapping(self.widgets['produit_id'], 2)
         self.mapper.addMapping(self.widgets['date_achat'], 3)
         self.mapper.addMapping(self.widgets['price'], 4)
+        self.mapper.addMapping(self.widgets['quantity'], 5)
         
         for key, widget in self.widgets.items():
             if self.mapper.mappedSection(widget) == -1:
                 logging.warning(key+' is not mapped.')
 
-        self.auto_layout()
+        self.layout = QFormLayout(self)
+        fournisseur_layout = QHBoxLayout()
+        fournisseur_layout.addWidget(self.widgets['fournisseur_id'])
+        fournisseur_layout.addWidget(add_fournisseur_button)
+        product_layout = QHBoxLayout()
+        product_layout.addWidget(self.widgets['produit_id'])
+        product_layout.addWidget(add_produit_button)
+
+        self.layout.addRow('Fournisseur', fournisseur_layout)
+        self.layout.addRow('Produit', product_layout)
+        self.layout.addRow("Date d'achat", self.widgets['date_achat'])
+        self.layout.addRow("Prix unitaire", self.widgets['price'])
+        self.layout.addRow("Quantité", self.widgets['quantity'])
+
         self.auto_default_buttons()
         self.add_row()
         self.exec_()
+
+    def add_new_fournisseur(self):
+        model = self.parentWidget().models.fournisseurs
+        result = AddFournisseur(self, model).result()
+        if result:
+            self.fournisseur_model.select()
+            self.widgets['fournisseur_id'].setCurrentIndex(
+                self.widgets['fournisseur_id'].count() - 1)
+
+    def add_new_produit(self):
+        model = self.parentWidget().models.produits
+        result = AddProduct(self, model).result()
+        logging.debug(result)
+        if result:
+            self.produit_model.select()
+            combo_box = self.widgets['produit_id']
+            combo_box.setCurrentIndex(combo_box.count() - 1)
 
     def submited(self):
         submited = self.mapper.submit()
@@ -259,11 +263,11 @@ class AddInput(MappedQDialog):
             logging.info("L'entrée a bien été enregistrée")
             self.accept()
         if not submited:
-            db_error = self.model.lastError().type()
+            db_error = self.model.lastError()
             last_query = self.model.query().lastError().type()
             logging.debug(db_error)
             if db_error:
-                logging.warning(self.model.tableName()+' '+db_error)
+                logging.warning(self.model.tableName()+' '+db_error.text())
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
 
 class AddMalle(MappedQDialog):
