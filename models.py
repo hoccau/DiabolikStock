@@ -17,6 +17,7 @@ class Models():
         self.produits = Produits(None, self.db)
         self.malles_types = MallesTypes(None, self.db)
         self.malles = Malles(None, self.db)
+        self.contenu_malles = ContenuMalles(None, self.db) 
         self.inputs = Inputs(None, self.db)
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
@@ -55,6 +56,16 @@ class Malles(QSqlRelationalTableModel):
             1, QSqlRelation('malles_types', 'id', 'denomination'))
         self.select()
 
+class ContenuMalles(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super(ContenuMalles, self).__init__(parent, db)
+
+        self.setTable('contenu_malles')
+        self.setRelation(2, QSqlRelation('produits', 'id', 'nom'))
+        self.setRelation(4, QSqlRelation('etats', 'id', 'etat'))
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.select()
+
 class MallesTypes(QSqlTableModel):
     def __init__(self, parent, db):
         super(MallesTypes, self).__init__(parent, db)
@@ -72,7 +83,7 @@ class MallesTypesWithMalles(QSqlQueryModel):
         self.setQuery(
             " SELECT denomination, string_agg(reference, ', ') "\
             + "FROM malles_types "\
-            + "INNER JOIN malles ON malles.type_id = malles_types.id "\
+            + "LEFT JOIN malles ON malles.type_id = malles_types.id "\
             + "GROUP BY denomination")
         self.setHeaderData(0, Qt.Horizontal, "Dénomination")
         self.setHeaderData(1, Qt.Horizontal, "Malles")

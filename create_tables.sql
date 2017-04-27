@@ -59,17 +59,19 @@ CREATE TABLE produits(
     UNIQUE(nom)
 	);
 CREATE TABLE etats(
-    etat varchar(100) PRIMARY KEY
+    id serial PRIMARY KEY,
+    etat varchar(100)
     );
 CREATE TABLE contenu_malles(
+    id serial PRIMARY KEY,
 	malle_ref varchar(6) NOT NULL,
 	produit_id integer NOT NULL,
-    quantity integer NOT NULL,
-    etat_id varchar(100),
-	PRIMARY KEY (produit_id, malle_ref),
+    quantity integer NOT NULL DEFAULT 0,
+    etat_id integer,
+	UNIQUE (produit_id, malle_ref),
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
 	FOREIGN KEY (malle_ref) REFERENCES malles(reference),
-	FOREIGN KEY (etat_id) REFERENCES etats(etat)
+	FOREIGN KEY (etat_id) REFERENCES etats(id)
 	);
 CREATE TABLE contenu_type(
 	type_id integer,
