@@ -38,9 +38,12 @@ CREATE TABLE malles_types(
 CREATE TABLE malles(
 	reference varchar(6) PRIMARY KEY,
 	type_id integer,
-    observation varchar(255),
+    observation varchar(1024),
 	FOREIGN KEY (type_id) REFERENCES malles_types(id)
 	);
+INSERT INTO malles(reference, observation) VALUES(
+    'VSTOCK', 'Malle virtuelle, contenant le stock disponible. Si un 
+    produit est entré, il est automatiquement ajouté à cette malle.');
 CREATE TABLE reservations_malles_rel(
 	reservation_id integer,
 	malle_ref varchar(6) REFERENCES malles(reference)
@@ -59,9 +62,14 @@ CREATE TABLE produits(
     UNIQUE(nom)
 	);
 CREATE TABLE etats(
-    id serial PRIMARY KEY,
+    id integer PRIMARY KEY,
     etat varchar(100)
     );
+INSERT INTO etats(id, etat) VALUES(1, 'neuf');
+INSERT INTO etats(id, etat) VALUES(2, 'bon');
+INSERT INTO etats(id, etat) VALUES(3, 'mauvais');
+INSERT INTO etats(id, etat) VALUES(4, 'HS');
+
 CREATE TABLE contenu_malles(
     id serial PRIMARY KEY,
 	malle_ref varchar(6) NOT NULL,

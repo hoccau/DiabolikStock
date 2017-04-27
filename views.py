@@ -261,6 +261,7 @@ class AddInput(MappedQDialog):
         if submited:
             self.model.select()
             logging.info("L'entrée a bien été enregistrée")
+            self.submit_vstock()
             self.accept()
         if not submited:
             db_error = self.model.lastError()
@@ -269,6 +270,16 @@ class AddInput(MappedQDialog):
             if db_error:
                 logging.warning(self.model.tableName()+' '+db_error.text())
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
+
+    def submit_vstock(self):
+        model = self.parentWidget().models.contenu_malles
+        combobox = self.widgets['produit_id']
+        row = combobox.currentIndex()
+        model_index = combobox.model().index(row, 0)
+        product_id = combobox.model().data(model_index)
+
+        quantity = self.widgets['quantity'].value()
+        self.model.fill_stock(product_id, quantity)
 
 class AddMalle(MappedQDialog):
     def __init__(self, parent, model):

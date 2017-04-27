@@ -9,7 +9,8 @@ Logiciel de gestion du matériel pour l'association Diabolo
 from PyQt5 import QtSql
 from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction
 from PyQt5.QtGui import QIcon
-from models import Models, Malles, MallesTypesWithMalles, Fournisseurs, Produits
+from models import (
+    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel)
 from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
@@ -122,8 +123,11 @@ class MainWindow(QMainWindow):
     def display_fournisseurs(self):
         DisplayTableViewDialog(self, Fournisseurs(self, self.db.db))
 
+    def display_inputs(self):
+        DisplayTableViewDialog(self, Inputs(self, self.db.db))
+
     def display_produits(self):
-        DisplayTableViewDialog(self, Produits(self, self.db.db))
+        DisplayTableViewDialog(self, ProduitsModel())
 
 if __name__ == '__main__':
     import sys, os

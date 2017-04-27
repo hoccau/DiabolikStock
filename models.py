@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*- 
 
 from PyQt5.QtSql import (
-    QSqlQueryModel, QSqlRelationalTableModel, QSqlRelation, QSqlTableModel)
+    QSqlQueryModel, QSqlRelationalTableModel, QSqlRelation, QSqlTableModel,
+    QSqlQuery)
 from PyQt5.QtCore import Qt
 import logging
 
@@ -46,6 +47,11 @@ class Inputs(QSqlRelationalTableModel):
         self.setRelation(
             2, QSqlRelation('produits', 'id', 'nom'))
         self.select()
+
+    def fill_stock(self, produit_id, quantity):
+        query = QSqlQuery(
+            "INSERT INTO contenu_malles(malle_ref, produit_id, quantity, etat_id) "
+            + "VALUES('VSTOCK', "+str(produit_id)+", "+str(quantity)+", 1)")
 
 class Malles(QSqlRelationalTableModel):
     def __init__(self, parent, db):
@@ -98,12 +104,13 @@ class ContenuType(QSqlRelationalTableModel):
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
-class ExempleModel(QSqlQueryModel):
+class ProduitsModel(QSqlQueryModel):
     def __init__(self):
-        super(ExempleModel, self).__init__()
+        super(ProduitsModel, self).__init__()
         self.select()
     
     def select(self):
-        self.setQuery("QUERY HERE")
-        self.setHeaderData(0, Qt.Horizontal, "Nom de colonne 0")
-        self.setHeaderData(1, Qt.Horizontal, "Nom de colonne 1")
+        self.setQuery(
+            "SELECT produits.nom, sum(quantity) FROM contenu_malles "\
+            + "INNER JOIN produits ON produit_id = produits.id "\
+            + "GROUP BY produits.nom")
