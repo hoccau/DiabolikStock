@@ -14,7 +14,7 @@ from models import (
 from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
-    DisplayTableViewDialog, MallesDialog)
+    DisplayTableViewDialog, MallesDialog, MallesTypesDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -118,16 +118,19 @@ class MainWindow(QMainWindow):
         MallesDialog(self, model)
 
     def display_malles_types(self):
-        DisplayTableViewDialog(self, MallesTypesWithMalles())
+        MallesTypesDialog(self, MallesTypesWithMalles())
 
     def display_fournisseurs(self):
-        DisplayTableViewDialog(self, Fournisseurs(self, self.db.db))
+        dialog = DisplayTableViewDialog(self, Fournisseurs(self, self.db.db))
+        dialog.exec_()
 
     def display_inputs(self):
-        DisplayTableViewDialog(self, Inputs(self, self.db.db))
+        dialog = DisplayTableViewDialog(self, Inputs(self, self.db.db))
+        dialog.exec_()
 
     def display_produits(self):
-        DisplayTableViewDialog(self, ProduitsModel())
+        dialog = DisplayTableViewDialog(self, ProduitsModel())
+        dialog.exec_()
 
 if __name__ == '__main__':
     import sys, os

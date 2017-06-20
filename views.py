@@ -52,9 +52,6 @@ class DisplayTableViewDialog(QDialog):
         self.view = QTableView(self)
         self.view.setModel(model)
         self.view.setItemDelegate(QSqlRelationalDelegate())
-        self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.view.doubleClicked.connect(self.edit_row)
 
         close_button = QPushButton('Fermer')
 
@@ -66,19 +63,32 @@ class DisplayTableViewDialog(QDialog):
 
         close_button.clicked.connect(self.accept)
 
+class RowEditDialog(DisplayTableViewDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.view.doubleClicked.connect(self.edit_row)
+
+class MallesDialog(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
         self.exec_()
 
     def edit_row(self, index):
-        pass
-
-class MallesDialog(DisplayTableViewDialog):
-    def __init__(self, parent, model):
-        super().__init__(parent, model)
-
-    def edit_row(self, index):
-        super().edit_row(index)
         reference = self.model.data(self.model.index(index.row(), 0))
         ContenuMalle(self, self.parent.models.contenu_malles, reference)
+
+class MallesTypesDialog(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.view.hideColumn(0) # hide id
+        self.exec_()
+
+    def edit_row(self, index):
+        type_id = self.model.data(self.model.index(index.row(), 0))
+        denomination = self.model.data(self.model.index(index.row(), 1))
+        ContenuType(self, self.parent.models.contenu_type, type_id, denomination)
 
 class MappedQDialog(QDialog):
     def __init__(self, parent, model):
@@ -431,8 +441,12 @@ class AddMalleType(MappedQDialog):
         if submited:
             self.model.select()
             self.accept()
-            self.products = AddContenuType(self, self.contenu_type_model)
-            self.products.exec_()
+            type_id = self.model.record(self.model.rowCount() -1).value(0)
+            self.products = ContenuType(
+                self,
+                self.contenu_type_model,
+                type_id,
+                self.widgets['denomination'].text())
         else:
             error = self.model.lastError()
             logging.warning(error.text())
@@ -440,18 +454,16 @@ class AddMalleType(MappedQDialog):
                 QMessageBox.warning(
                     self, "Erreur", "Cette malle type semble déjà exister")
 
-class AddContenuType(QDialog):
-    def __init__(self, parent, model):
-        super(AddContenuType, self).__init__(parent)
+class ContenuType(QDialog):
+    def __init__(self, parent, model, type_id=None, denomination=None):
+        super().__init__(parent)
 
         self.model = model
-        self.parent_record = parent.model.record(parent.model.rowCount() -1)
-        logging.debug(self.parent_record)
-        self.type_id = self.parent_record.value(0) 
-        self.model.setFilter("type_id = "+str(self.type_id))
+        self.type_id = type_id
+        self.model.setFilter("type_id = "+str(type_id))
 
         self.title_label = QLabel(
-            "Contenu type d'une malle "+self.parent_record.value(1))
+            "Contenu type d'une malle "+ denomination)
 
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
@@ -471,6 +483,8 @@ class AddContenuType(QDialog):
         
         self.add_button.clicked.connect(self.add_row)
         self.finish_button.clicked.connect(self.terminated)
+
+        self.exec_()
         
     def submit_row(self):
         submited = self.model.submitAll()
