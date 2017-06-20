@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget)
-from PyQt5.QtCore import QDate, QByteArray, QSize
+from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex
 from validators import EmailValidator, PhoneValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -47,21 +47,38 @@ class DisplayTableViewDialog(QDialog):
     def __init__(self, parent, model):
         super(DisplayTableViewDialog, self).__init__(parent)
         
-        view = QTableView(self)
-        view.setModel(model)
-        view.setItemDelegate(QSqlRelationalDelegate())
-        view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.model = model
+        self.parent = parent
+        self.view = QTableView(self)
+        self.view.setModel(model)
+        self.view.setItemDelegate(QSqlRelationalDelegate())
+        self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.view.doubleClicked.connect(self.edit_row)
 
         close_button = QPushButton('Fermer')
 
         layout = QVBoxLayout()
-        layout.addWidget(view)
+        layout.addWidget(self.view)
         layout.addWidget(close_button)
         self.setLayout(layout)
+        self.setMinimumSize(500, 400)
 
         close_button.clicked.connect(self.accept)
 
         self.exec_()
+
+    def edit_row(self, index):
+        pass
+
+class MallesDialog(DisplayTableViewDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+
+    def edit_row(self, index):
+        super().edit_row(index)
+        reference = self.model.data(self.model.index(index.row(), 0))
+        ContenuMalle(self, self.parent.models.contenu_malles, reference)
 
 class MappedQDialog(QDialog):
     def __init__(self, parent, model):
@@ -312,26 +329,25 @@ class AddMalle(MappedQDialog):
             self.model.select()
             logging.info('Malle added.')
             self.accept()
-            contenu = AddContenuMalle(self, self.contenu_malles_model)
-            contenu.exec_()
+            contenu = ContenuMalle(
+                self,
+                self.contenu_malles_model,
+                self.widgets['reference'].text())
         else:
             logging.warning(self.model.lastError().text())
             if error.nativeErrorCode() == '23505':
                 QMessageBox.warning(
                     self, "Erreur", "Cette référence existe déjà.")
 
-class AddContenuMalle(QDialog):
-    def __init__(self, parent, model):
-        super(AddContenuMalle, self).__init__(parent)
+class ContenuMalle(QDialog):
+    def __init__(self, parent, model, malle_ref=None):
+        super(ContenuMalle, self).__init__(parent)
         
         self.model = model
-        self.parent_record = parent.model.record(parent.model.rowCount() -1)
-        logging.debug(self.parent_record)
-        self.malle_ref = self.parent_record.value(0)
-        self.model.setFilter("malle_ref = '"+str(self.malle_ref)+"'")
+        self.malle_ref = malle_ref
+        self.model.setFilter("malle_ref = '"+str(malle_ref)+"'")
 
-        self.title_label = QLabel(
-            "Contenu de la malle " + self.parent_record.value(0))
+        self.title_label = QLabel("Contenu de la malle " + str(malle_ref))
 
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
@@ -351,6 +367,8 @@ class AddContenuMalle(QDialog):
         
         self.add_button.clicked.connect(self.add_row)
         self.finish_button.clicked.connect(self.terminated)
+
+        self.exec_()
         
     def submit_row(self):
         submited = self.model.submitAll()
@@ -486,4 +504,3 @@ class AddContenuType(QDialog):
             if not submited:
                 return False
         self.close()
-
