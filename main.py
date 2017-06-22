@@ -14,7 +14,7 @@ from models import (
 from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
-    DisplayTableViewDialog, MallesDialog, MallesTypesDialog)
+    DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
             'add_malle_type': self._add_action(
                 '&Malle type', self.add_malle_type),
             'add_malle': self._add_action('&Malle', self.add_malle),
+            'add_sejour': self._add_action('&Séjour', self.add_sejour),
             'view_malles':self._add_action('&Malles', self.display_malles),
             'view_malles_types':self._add_action(
                 '&Types de malles', self.display_malles_types),
@@ -64,6 +65,7 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.db_actions['add_input'])
         addMenu.addAction(self.db_actions['add_malle_type'])
         addMenu.addAction(self.db_actions['add_malle'])
+        addMenu.addAction(self.db_actions['add_sejour'])
 
         self.statusBar().showMessage('')
         self.setMinimumSize(850,300)
@@ -112,6 +114,9 @@ class MainWindow(QMainWindow):
     
     def add_malle_type(self):
         AddMalleType(self, self.models.malles_types)
+
+    def add_sejour(self):
+        SejourForm(self, self.models.sejours)
 
     def display_malles(self):
         model = Malles(self, self.db.db)

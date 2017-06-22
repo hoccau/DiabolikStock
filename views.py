@@ -91,6 +91,7 @@ class MallesTypesDialog(RowEditDialog):
         ContenuType(self, self.parent.models.contenu_type, type_id, denomination)
 
 class MappedQDialog(QDialog):
+    """ Abstract class for inputs forms views """
     def __init__(self, parent, model):
         super(MappedQDialog, self).__init__(parent)
 
@@ -518,3 +519,52 @@ class ContenuType(QDialog):
             if not submited:
                 return False
         self.close()
+
+class SejourForm(MappedQDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        
+        self.widgets['nom'] = QLineEdit()
+        self.widgets['lieu_id'] = QComboBox()
+        self.widgets['directeur'] = QLineEdit()
+        self.widgets['nbr_enfants'] = QSpinBox()
+        self.widgets['observation'] = QTextEdit()
+        
+        lieu_model = self.model.relationModel(2)
+        logging.debug(lieu_model)
+        self.widgets['lieu_id'].setModel(lieu_model)
+        self.widgets['lieu_id'].setModelColumn(
+            lieu_model.fieldIndex('ville'))
+        
+        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+        
+        self.mapper.addMapping(
+            self.widgets['observation'],
+            5,
+            QByteArray(b'plainText')) #because default is tohtml
+        self.mapper.addMapping(self.widgets['nom'], 1)
+        self.mapper.addMapping(self.widgets['lieu_id'], 2)
+        self.mapper.addMapping(self.widgets['directeur'], 3)
+        self.mapper.addMapping(self.widgets['nbr_enfants'], 4)
+        
+        self.layout = QFormLayout(self)
+        self.layout.addRow('Nom du séjour', self.widgets['nom'])
+        self.layout.addRow('Lieu', self.widgets['lieu_id'])
+        self.layout.addRow('Nom du directeur', self.widgets['directeur'])
+        self.layout.addRow("Nombre d'enfants", self.widgets['nbr_enfants'])
+        self.layout.addRow("Observations", self.widgets['observation'])
+        
+
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
+
+    def submited(self):
+        submited = self.mapper.submit()
+        self.model.submitAll()
+        logging.debug(self.model.lastError().text())
+        if submited:
+            self.model.select()
+            logging.info('Sejour added.')
+            self.accept()
+

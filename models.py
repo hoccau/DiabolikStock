@@ -22,6 +22,7 @@ class Models():
         self.inputs = Inputs(None, self.db)
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
+        self.sejours = Sejours(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -114,3 +115,13 @@ class ProduitsModel(QSqlQueryModel):
             "SELECT produits.nom, sum(quantity) FROM contenu_malles "\
             + "INNER JOIN produits ON produit_id = produits.id "\
             + "GROUP BY produits.nom")
+
+class Sejours(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super().__init__(parent, db)
+
+        self.setTable('sejours')
+        self.setRelation(2, QSqlRelation('lieux', 'id', 'ville'))
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.select()
+
