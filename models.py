@@ -23,6 +23,7 @@ class Models():
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
         self.sejours = Sejours(None, self.db)
+        self.contenu_checker = ContenuChecker(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -125,3 +126,9 @@ class Sejours(QSqlRelationalTableModel):
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
+class ContenuChecker(QSqlTableModel):
+    def __init__(self, parent, db):
+        super().__init__(parent, db)
+
+        self.setTable('contenu_check')
+        self.select()

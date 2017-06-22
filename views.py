@@ -569,3 +569,23 @@ class SejourForm(MappedQDialog):
             logging.info('Sejour added.')
             self.accept()
 
+class ContenuCheckerDialog(QDialog):
+    def __init__(self, parent, models):
+        super().__init__()
+
+        filter_combobox = QComboBox()
+        filter_combobox.setModel(models.malles)
+        self.model = models.contenu_checker
+        self.view = QTableView()
+        self.view.setModel(self.model)
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(filter_combobox)
+        self.layout.addWidget(self.view)
+
+        self.setMinimumSize(550, 500)
+
+        filter_combobox.currentTextChanged.connect(self.set_filter)
+
+    def set_filter(self, reference):
+        logging.debug('reference:'+str(reference))
+        self.model.setFilter("malle_ref = '" + reference + "'")

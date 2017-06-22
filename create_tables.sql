@@ -118,3 +118,15 @@ CREATE TABLE sejours_malles_types_rel(
     PRIMARY KEY (sejour_id, malle_type_id)
 	);
 
+CREATE VIEW contenu_check AS 
+	SELECT produits.nom, 
+	contenu_malles.quantity AS reel, 
+	contenu_type.quantity AS attendu, 
+	contenu_type.quantity - contenu_malles.quantity as difference,
+	malle_ref
+	FROM contenu_malles
+	LEFT JOIN contenu_type ON contenu_malles.produit_id = contenu_type.produit_id
+	LEFT JOIN malles ON malles.reference = contenu_malles.malle_ref
+	INNER JOIN produits ON produits.id = contenu_malles.produit_id
+	WHERE malles.type_id = contenu_type.type_id
+

@@ -10,11 +10,13 @@ from PyQt5 import QtSql
 from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction, QMessageBox
 from PyQt5.QtGui import QIcon
 from models import (
-    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel)
+    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel,
+    ContenuChecker)
 from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
-    DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm)
+    DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
+    ContenuCheckerDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -47,7 +49,8 @@ class MainWindow(QMainWindow):
             'view_malles_types':self._add_action(
                 '&Types de malles', self.display_malles_types),
             'view_fournisseurs':self._add_action('&Fournisseurs', self.display_fournisseurs),
-            'view_produits':self._add_action('&Produits', self.display_produits)
+            'view_produits':self._add_action('&Produits', self.display_produits),
+            'contenu_checker':self._add_action('cccc', self.contenu_checker)
         }
 
         fileMenu = menubar.addMenu('&Fichier')
@@ -59,6 +62,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.db_actions['view_malles_types'])
         view_menu.addAction(self.db_actions['view_fournisseurs'])
         view_menu.addAction(self.db_actions['view_produits'])
+        view_menu.addAction(self.db_actions['contenu_checker'])
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.db_actions['add_fournisseur'])
         addMenu.addAction(self.db_actions['add_produit'])
@@ -135,6 +139,10 @@ class MainWindow(QMainWindow):
 
     def display_produits(self):
         dialog = DisplayTableViewDialog(self, ProduitsModel())
+        dialog.exec_()
+
+    def contenu_checker(self):
+        dialog = ContenuCheckerDialog(self, self.models)
         dialog.exec_()
 
 if __name__ == '__main__':
