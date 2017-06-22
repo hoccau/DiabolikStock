@@ -355,6 +355,7 @@ class ContenuMalle(QDialog):
         super(ContenuMalle, self).__init__(parent)
         
         self.model = model
+        self.model.select()
         self.malle_ref = malle_ref
         self.model.setFilter("malle_ref = '"+str(malle_ref)+"'")
 
@@ -460,6 +461,7 @@ class ContenuType(QDialog):
         super().__init__(parent)
 
         self.model = model
+        self.model.select()
         self.type_id = type_id
         self.model.setFilter("type_id = "+str(type_id))
 
@@ -553,7 +555,6 @@ class SejourForm(MappedQDialog):
         self.layout.addRow('Nom du directeur', self.widgets['directeur'])
         self.layout.addRow("Nombre d'enfants", self.widgets['nbr_enfants'])
         self.layout.addRow("Observations", self.widgets['observation'])
-        
 
         self.auto_default_buttons()
         self.add_row()

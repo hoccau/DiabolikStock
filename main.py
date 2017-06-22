@@ -7,7 +7,7 @@ Logiciel de gestion du matériel pour l'association Diabolo
 """
 
 from PyQt5 import QtSql
-from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction
+from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction, QMessageBox
 from PyQt5.QtGui import QIcon
 from models import (
     Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel)

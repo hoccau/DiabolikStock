@@ -1,4 +1,5 @@
 -- File used to create blank database structure --
+-- use \i create_table.sql --
 
 CREATE TABLE lieux(
 	id serial PRIMARY KEY ,
