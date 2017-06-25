@@ -13,3 +13,6 @@ EmailValidator = QRegExpValidator(
 PhoneValidator = QRegExpValidator(
     QRegExp('^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$'))
 PriceValidator = QRegExpValidator(QRegExp('\d[\d\,\.]+'))
+
+# Code postal
+CPValidator = QRegExpValidator(QRegExp('^(([0-8][0-9])|(9[0-5]))[0-9]{3}$'))

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget)
 from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex
-from validators import EmailValidator, PhoneValidator
+from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
@@ -523,7 +523,7 @@ class ContenuType(QDialog):
         self.close()
 
 class SejourForm(MappedQDialog):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, lieux_model):
         super().__init__(parent, model)
         
         self.widgets['nom'] = QLineEdit()
@@ -531,12 +531,10 @@ class SejourForm(MappedQDialog):
         self.widgets['directeur'] = QLineEdit()
         self.widgets['nbr_enfants'] = QSpinBox()
         self.widgets['observation'] = QTextEdit()
+        add_lieu_button = QPushButton('+')
         
-        lieu_model = self.model.relationModel(2)
-        logging.debug(lieu_model)
-        self.widgets['lieu_id'].setModel(lieu_model)
-        self.widgets['lieu_id'].setModelColumn(
-            lieu_model.fieldIndex('ville'))
+        self.widgets['lieu_id'].setModel(lieux_model)
+        self.widgets['lieu_id'].setModelColumn(1) #nom
         
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
         
@@ -550,11 +548,16 @@ class SejourForm(MappedQDialog):
         self.mapper.addMapping(self.widgets['nbr_enfants'], 4)
         
         self.layout = QFormLayout(self)
+        lieu_layout = QHBoxLayout()
+        lieu_layout.addWidget(self.widgets['lieu_id'])
+        lieu_layout.addWidget(add_lieu_button)
         self.layout.addRow('Nom du séjour', self.widgets['nom'])
-        self.layout.addRow('Lieu', self.widgets['lieu_id'])
+        self.layout.addRow('Lieu', lieu_layout)
         self.layout.addRow('Nom du directeur', self.widgets['directeur'])
         self.layout.addRow("Nombre d'enfants", self.widgets['nbr_enfants'])
         self.layout.addRow("Observations", self.widgets['observation'])
+        
+        add_lieu_button.clicked.connect(parent.add_lieu)
 
         self.auto_default_buttons()
         self.add_row()
@@ -589,3 +592,26 @@ class ContenuCheckerDialog(QDialog):
     def set_filter(self, reference):
         logging.debug('reference:'+str(reference))
         self.model.setFilter("malle_ref = '" + reference + "'")
+
+class LieuForm(MappedQDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+
+        self.widgets['nom'] = QLineEdit()
+        self.widgets['ville'] = QLineEdit()
+        self.widgets['cp'] = QLineEdit()
+        self.widgets['numero'] = QLineEdit()
+        self.widgets['rue'] = QLineEdit()
+
+        self.widgets['cp'].setValidator(CPValidator) 
+        self.widgets['numero'].setValidator(QIntValidator()) 
+
+        self.init_add_dialog()
+       
+    def submited(self):
+        submited = self.mapper.submit()
+        self.model.submitAll()
+        if submited:
+            self.accept()
+        else:
+            logging.warning(self.model.lastError().text())

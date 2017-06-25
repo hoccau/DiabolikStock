@@ -23,6 +23,10 @@ class Models():
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
         self.sejours = Sejours(None, self.db)
+        self.lieux = QSqlTableModel(None, self.db)
+        self.lieux.setTable('lieux')
+        self.lieux.select()
+        self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.contenu_checker = ContenuChecker(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
@@ -122,7 +126,8 @@ class Sejours(QSqlRelationalTableModel):
         super().__init__(parent, db)
 
         self.setTable('sejours')
-        self.setRelation(2, QSqlRelation('lieux', 'id', 'ville'))
+        rel = QSqlRelation('lieux', 'id', 'nom')
+        self.setRelation(2, rel)
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 

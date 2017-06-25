@@ -2,11 +2,13 @@
 -- use \i create_table.sql --
 
 CREATE TABLE lieux(
-	id serial PRIMARY KEY ,
+	id serial PRIMARY KEY,
+    nom varchar(25),
 	ville varchar(25),
 	CP integer,
 	numero integer,
-	rue varchar(30)
+	rue varchar(30),
+    UNIQUE(nom)
 	);
 CREATE TABLE vehicules(
 	immatriculation char(7) PRIMARY KEY,

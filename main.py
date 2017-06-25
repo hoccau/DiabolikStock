@@ -11,12 +11,12 @@ from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction, QMessageBo
 from PyQt5.QtGui import QIcon
 from models import (
     Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel,
-    ContenuChecker)
+    ContenuChecker, Sejours)
 from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
     DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
-    ContenuCheckerDialog)
+    ContenuCheckerDialog, LieuForm)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -48,9 +48,12 @@ class MainWindow(QMainWindow):
             'view_malles':self._add_action('&Malles', self.display_malles),
             'view_malles_types':self._add_action(
                 '&Types de malles', self.display_malles_types),
-            'view_fournisseurs':self._add_action('&Fournisseurs', self.display_fournisseurs),
+            'view_fournisseurs':self._add_action(
+                '&Fournisseurs', self.display_fournisseurs),
             'view_produits':self._add_action('&Produits', self.display_produits),
-            'contenu_checker':self._add_action('cccc', self.contenu_checker)
+            'contenu_checker':self._add_action(
+                '&Contenu des malles', self.contenu_checker),
+            'view_sejours':self._add_action('&Séjours', self.display_sejours)
         }
 
         fileMenu = menubar.addMenu('&Fichier')
@@ -63,6 +66,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.db_actions['view_fournisseurs'])
         view_menu.addAction(self.db_actions['view_produits'])
         view_menu.addAction(self.db_actions['contenu_checker'])
+        view_menu.addAction(self.db_actions['view_sejours'])
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.db_actions['add_fournisseur'])
         addMenu.addAction(self.db_actions['add_produit'])
@@ -120,7 +124,10 @@ class MainWindow(QMainWindow):
         AddMalleType(self, self.models.malles_types)
 
     def add_sejour(self):
-        SejourForm(self, self.models.sejours)
+        SejourForm(self, self.models.sejours, self.models.lieux)
+
+    def add_lieu(self):
+        dialog = LieuForm(None, self.models.lieux)
 
     def display_malles(self):
         model = Malles(self, self.db.db)
@@ -143,6 +150,10 @@ class MainWindow(QMainWindow):
 
     def contenu_checker(self):
         dialog = ContenuCheckerDialog(self, self.models)
+        dialog.exec_()
+
+    def display_sejours(self):
+        dialog = DisplayTableViewDialog(self, self.models.sejours)
         dialog.exec_()
 
 if __name__ == '__main__':
