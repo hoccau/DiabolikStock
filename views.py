@@ -194,11 +194,31 @@ class AddFournisseur(Fournisseur):
                 self.accept()
 
 class AddProduct(MappedQDialog):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, fournisseurs_model):
         super(AddProduct, self).__init__(parent, model)
 
         self.widgets['nom'] = QLineEdit()
-        self.init_add_dialog()
+        self.widgets['fournisseur_id'] = QComboBox()
+        self.widgets['fournisseur_id'].setModel(fournisseurs_model)
+        self.widgets['fournisseur_id'].setModelColumn(1)
+        add_fournisseur_button = QPushButton('+')
+
+        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+
+        self.mapper.addMapping(self.widgets['nom'], 1)
+        self.mapper.addMapping(self.widgets['fournisseur_id'], 2)
+        
+        self.layout = QFormLayout(self)
+        self.layout.addRow('Nom', self.widgets['nom'])
+        fournisseur_layout = QHBoxLayout()
+        fournisseur_layout.addWidget(self.widgets['fournisseur_id'])
+        fournisseur_layout.addWidget(add_fournisseur_button)
+        self.layout.addRow('Fournisseur', fournisseur_layout)
+
+        add_fournisseur_button.clicked.connect(parent.add_fournisseur)
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
 
     def submited(self):
         submited = self.mapper.submit()

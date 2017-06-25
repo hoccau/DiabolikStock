@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         AddFournisseur(self, self.models.fournisseurs)
 
     def add_product(self):
-        AddProduct(self, self.models.produits)
+        AddProduct(self, self.models.produits, self.models.fournisseurs)
 
     def add_input(self):
         AddInput(self, self.models.inputs)

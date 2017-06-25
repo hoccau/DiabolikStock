@@ -62,6 +62,7 @@ CREATE TABLE fournisseurs(
 CREATE TABLE produits(
 	id serial PRIMARY KEY,
 	nom varchar(30) NOT NULL,
+	fournisseur_id integer REFERENCES fournisseurs(id),
     UNIQUE(nom)
 	);
 CREATE TABLE etats(
