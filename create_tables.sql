@@ -126,8 +126,10 @@ CREATE VIEW contenu_check AS
 	contenu_malles.quantity AS reel, 
 	contenu_type.quantity AS attendu, 
 	contenu_type.quantity - contenu_malles.quantity as difference,
-	malle_ref
+	malle_ref,
+    etats.etat
 	FROM contenu_malles
+    LEFT JOIN etats ON etats.id = contenu_malles.etat_id
 	LEFT JOIN contenu_type ON contenu_malles.produit_id = contenu_type.produit_id
 	LEFT JOIN malles ON malles.reference = contenu_malles.malle_ref
 	INNER JOIN produits ON produits.id = contenu_malles.produit_id

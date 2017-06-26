@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         AddInput(self, self.models.inputs)
 
     def add_malle(self):
-        AddMalle(self, self.models.malles)
+        AddMalle(self, self.models.malles, self.models.malles_types)
     
     def add_malle_type(self):
         AddMalleType(self, self.models.malles_types)

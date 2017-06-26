@@ -330,7 +330,7 @@ class AddInput(MappedQDialog):
         self.model.fill_stock(product_id, quantity)
 
 class AddMalle(MappedQDialog):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, malles_type_model):
         super(AddMalle, self).__init__(parent, model)
 
         self.contenu_malles_model = parent.models.contenu_malles
@@ -338,11 +338,9 @@ class AddMalle(MappedQDialog):
         self.widgets['reference'] = QLineEdit()
         self.widgets['type_id'] = QComboBox()
 
-        type_model = self.model.relationModel(1)
-        logging.debug(type_model)
-        self.widgets['type_id'].setModel(type_model)
+        self.widgets['type_id'].setModel(malles_type_model)
         self.widgets['type_id'].setModelColumn(
-            type_model.fieldIndex('denomination'))
+            malles_type_model.fieldIndex('denomination'))
         
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
         
