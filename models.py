@@ -27,7 +27,7 @@ class Models():
         self.lieux.setTable('lieux')
         self.lieux.select()
         self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
-        self.contenu_checker = ContenuChecker(None, self.db)
+        self.contenu_checker = ContenuChecker()
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -134,9 +134,55 @@ class Sejours(QSqlRelationalTableModel):
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
-class ContenuChecker(QSqlTableModel):
-    def __init__(self, parent, db):
-        super().__init__(parent, db)
+class ContenuChecker(QSqlQueryModel):
+    def __init__(self):
+        super().__init__()
+        self.main_query = "SELECT id, nom, reel, attendu, "\
+        + "difference, etat "\
+        + "FROM contenu_check "
+        self.current_filter = 'malle_ref = NULL'
+        self.etats_model = QSqlTableModel()
+        self.etats_model.setTable('etats')
+        self.etats_model.select()
 
-        self.setTable('contenu_check')
+    def select(self):
+        self.setQuery(self.main_query + " WHERE " + self.current_filter)
+
+    def setFilter(self, filter_):
+        self.current_filter = filter_
         self.select()
+    
+    def setData(self, index, value, role):
+        logging.debug(index.column())
+        id_ = index.model().data(index.sibling(index.row(), 0))
+        if index.column() == 5:
+            self.set_etat(value, id_)
+        elif index.column() == 2:
+            self.set_nbr(value, id_)
+        self.select()
+        return value
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if index.column() in (2, 5):
+            flags |= Qt.ItemIsEditable
+        return flags
+
+    def set_etat(self, etat_id, id_):
+        query = QSqlQuery()
+        query.prepare("UPDATE contenu_malles "\
+        + "SET etat_id = :etat_id "\
+        + "WHERE contenu_malles.id = :id_")
+        query.bindValue(':etat_id', etat_id)
+        query.bindValue(':id_', id_)
+        query.exec_()
+
+    def set_nbr(self, quantity, id_):
+        query = QSqlQuery()
+        query.prepare("UPDATE contenu_malles "\
+        + "SET quantity = :quantity "\
+        + "WHERE contenu_malles.id = :id_")
+        query.bindValue(':quantity', quantity)
+        query.bindValue(':id_', id_)
+        query.exec_()
+

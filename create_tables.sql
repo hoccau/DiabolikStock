@@ -122,7 +122,9 @@ CREATE TABLE sejours_malles_types_rel(
 	);
 
 CREATE VIEW contenu_check AS 
-	SELECT produits.nom, 
+	SELECT 
+    contenu_malles.id,
+    produits.nom, 
 	contenu_malles.quantity AS reel, 
 	contenu_type.quantity AS attendu, 
 	contenu_type.quantity - contenu_malles.quantity as difference,

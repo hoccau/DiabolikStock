@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
-    QVBoxLayout, QLabel, QWidget)
+    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate)
 from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex
 from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
@@ -594,11 +594,14 @@ class ContenuCheckerDialog(QDialog):
     def __init__(self, parent, models):
         super().__init__()
 
+        self.models = models
         filter_combobox = QComboBox()
         filter_combobox.setModel(models.malles)
         self.model = models.contenu_checker
         self.view = QTableView()
         self.view.setModel(self.model)
+        etat_delegate = EtatDelegate(self)
+        self.view.setItemDelegateForColumn(5, etat_delegate)
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(filter_combobox)
         self.layout.addWidget(self.view)
@@ -633,3 +636,22 @@ class LieuForm(MappedQDialog):
             self.accept()
         else:
             logging.warning(self.model.lastError().text())
+
+
+class EtatDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def paint(self, painter, opt, index):
+        super().paint(painter, opt, index)
+
+    def createEditor(self, parent, option, index):
+        logging.debug(index)
+        editor = QComboBox(parent)
+        editor.setModel(index.model().etats_model)
+        editor.setModelColumn(1)
+        return editor
+
+    def setModelData(self, editor, model, index):
+        idx = editor.model().index(editor.currentIndex(), 0)
+        model.setData(index, editor.model().data(idx), None)
