@@ -373,6 +373,7 @@ class ContenuMalle(QDialog):
         super(ContenuMalle, self).__init__(parent)
         
         self.model = model
+        self.parent = parent
         self.model.select()
         self.malle_ref = malle_ref
         self.model.setFilter("malle_ref = '"+str(malle_ref)+"'")
@@ -384,9 +385,11 @@ class ContenuMalle(QDialog):
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
 
         self.add_button = QPushButton('+')
+        self.import_type_button = QPushButton('importer la malle type')
         self.finish_button = QPushButton('Terminé')
         
         self.layout = QVBoxLayout()
+        self.layout.addWidget(self.import_type_button)
         self.layout.addWidget(self.title_label)
         self.layout.addWidget(self.products_table)
         buttons_layout = QHBoxLayout()
@@ -396,6 +399,7 @@ class ContenuMalle(QDialog):
         self.setLayout(self.layout)
         
         self.add_button.clicked.connect(self.add_row)
+        self.import_type_button.clicked.connect(self.import_type)
         self.finish_button.clicked.connect(self.terminated)
 
         self.exec_()
@@ -416,17 +420,34 @@ class ContenuMalle(QDialog):
         else:
             return True
     
-    def add_row(self):
+    def add_row(self, values=False):
         if self.model.isDirty():
             submited = self.submit_row()
         inserted = self.model.insertRow(self.model.rowCount())
         record = self.model.record()
         record.setValue('malle_ref', self.malle_ref)
+        logging.debug(values)
+        if values:
+            record.setValue('nom', values['produit_id'])
+            record.setValue('quantity', values['quantity'])
+            record.setValue('etat', 1)
         record.setGenerated('id', False)
         record_is_set = self.model.setRecord(self.model.rowCount() -1, record)
         if not inserted:
             logging.warning(
                 'Row not inserted in model {0}'.format(self.model))
+
+    def import_type(self):
+        type_id = self.parent.parent.db.get_(
+            ['type_id'],
+            'malles',
+            "reference = '" + self.malle_ref + "'")[0]['type_id']
+        res = self.parent.parent.db.get_(
+            ['produit_id', 'quantity'],
+            'contenu_type',
+            "type_id = " + str(type_id))
+        for row in res:
+            self.add_row(values = row)
 
     def terminated(self):
         if self.model.isDirty():
