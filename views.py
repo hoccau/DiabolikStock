@@ -609,6 +609,7 @@ class ContenuCheckerDialog(QDialog):
         self.setMinimumSize(550, 500)
 
         filter_combobox.currentTextChanged.connect(self.set_filter)
+        self.set_filter(filter_combobox.currentText())
 
     def set_filter(self, reference):
         logging.debug('reference:'+str(reference))
@@ -655,3 +656,5 @@ class EtatDelegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         idx = editor.model().index(editor.currentIndex(), 0)
         model.setData(index, editor.model().data(idx), None)
+
+
