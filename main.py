@@ -7,7 +7,8 @@ Logiciel de gestion du matériel pour l'association Diabolo
 """
 
 from PyQt5 import QtSql
-from PyQt5.QtWidgets import QApplication, qApp, QMainWindow, QAction, QMessageBox
+from PyQt5.QtWidgets import (
+    QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog)
 from PyQt5.QtGui import QIcon
 from models import (
     Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel,
@@ -37,6 +38,7 @@ class MainWindow(QMainWindow):
         exitAction = self._add_action('&Quitter', qApp.quit, 'Ctrl+Q')
         connectAction = self._add_action('&Connection', self.connect_db, 'Ctrl+C')
         self.db_actions = {
+            'export_commandes': self._add_action('&Commandes', self.export_commandes),
             'add_fournisseur': self._add_action(
                 '&Fournisseur', self.add_fournisseur),
             'add_produit': self._add_action('&Produit', self.add_product),
@@ -58,6 +60,8 @@ class MainWindow(QMainWindow):
 
         fileMenu = menubar.addMenu('&Fichier')
         fileMenu.addAction(connectAction)
+        export_menu = fileMenu.addMenu('&Exporter')
+        export_menu.addAction(self.db_actions['export_commandes'])
         fileMenu.addAction(exitAction)
         edit_menu = menubar.addMenu('&Édition')
         view_menu = menubar.addMenu('&Vue')
@@ -155,6 +159,19 @@ class MainWindow(QMainWindow):
     def display_sejours(self):
         dialog = DisplayTableViewDialog(self, self.models.sejours)
         dialog.exec_()
+
+    def get_pdf_filename(self):
+        filename, _format = QFileDialog.getSaveFileName(
+            self, "Exporter au format PDF", None, 'PDF(*.pdf)')
+        if filename:
+            if filename[-4:] != '.pdf':
+                filename += '.pdf'
+        return filename
+
+    def export_commandes(self):
+        from export import commandes
+        filename = self.get_pdf_filename()
+        commandes.create_pdf(filename, self.db) 
 
 if __name__ == '__main__':
     import sys, os

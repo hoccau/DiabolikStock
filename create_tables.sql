@@ -135,5 +135,20 @@ CREATE VIEW contenu_check AS
 	LEFT JOIN contenu_type ON contenu_malles.produit_id = contenu_type.produit_id
 	LEFT JOIN malles ON malles.reference = contenu_malles.malle_ref
 	INNER JOIN produits ON produits.id = contenu_malles.produit_id
-	WHERE malles.type_id = contenu_type.type_id
+	WHERE malles.type_id = contenu_type.type_id;
 
+CREATE VIEW bon_de_commande AS
+	SELECT 
+	fournisseurs.nom AS fournisseur,
+	fournisseurs.email,
+	fournisseurs.phone,
+	produits.nom,
+	contenu_type.quantity - contenu_malles.quantity AS quantity
+    FROM contenu_malles
+	LEFT JOIN contenu_type ON contenu_malles.produit_id = contenu_type.produit_id
+    LEFT JOIN malles ON malles.reference::text = contenu_malles.malle_ref::text
+    INNER JOIN produits ON produits.id = contenu_malles.produit_id
+    LEFT JOIN fournisseurs ON fournisseurs.id = produits.fournisseur_id
+  	WHERE malles.type_id = contenu_type.type_id
+  	AND contenu_type.quantity - contenu_malles.quantity > 0
+	ORDER BY fournisseur;
