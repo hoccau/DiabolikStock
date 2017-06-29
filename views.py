@@ -74,10 +74,15 @@ class MallesDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.exec_()
+        self.parent = parent
 
     def edit_row(self, index):
         reference = self.model.data(self.model.index(index.row(), 0))
-        ContenuMalle(self, self.parent.models.contenu_malles, reference)
+        ContenuMalle(
+            self, 
+            self.parent.models.contenu_malles,
+            self.parent.db,
+            reference)
 
 class MallesTypesDialog(RowEditDialog):
     def __init__(self, parent, model):
@@ -334,6 +339,7 @@ class AddMalle(MappedQDialog):
         super(AddMalle, self).__init__(parent, model)
 
         self.contenu_malles_model = parent.models.contenu_malles
+        self.db = parent.db
 
         self.widgets['reference'] = QLineEdit()
         self.widgets['type_id'] = QComboBox()
@@ -361,19 +367,22 @@ class AddMalle(MappedQDialog):
             contenu = ContenuMalle(
                 self,
                 self.contenu_malles_model,
+                self.db,
                 self.widgets['reference'].text())
         else:
-            logging.warning(self.model.lastError().text())
+            error = self.model.lastError()
+            logging.warning(error.text())
             if error.nativeErrorCode() == '23505':
                 QMessageBox.warning(
                     self, "Erreur", "Cette référence existe déjà.")
 
 class ContenuMalle(QDialog):
-    def __init__(self, parent, model, malle_ref=None):
+    def __init__(self, parent, model, db, malle_ref=None):
         super(ContenuMalle, self).__init__(parent)
         
         self.model = model
         self.parent = parent
+        self.db = db
         self.model.select()
         self.malle_ref = malle_ref
         self.model.setFilter("malle_ref = '"+str(malle_ref)+"'")
@@ -438,11 +447,11 @@ class ContenuMalle(QDialog):
                 'Row not inserted in model {0}'.format(self.model))
 
     def import_type(self):
-        type_id = self.parent.parent.db.get_(
+        type_id = self.db.get_(
             ['type_id'],
             'malles',
             "reference = '" + self.malle_ref + "'")[0]['type_id']
-        res = self.parent.parent.db.get_(
+        res = self.db.get_(
             ['produit_id', 'quantity'],
             'contenu_type',
             "type_id = " + str(type_id))
