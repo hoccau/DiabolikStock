@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
-    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate)
+    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget)
 from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex
 from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
@@ -651,6 +651,28 @@ class LieuForm(MappedQDialog):
 
         self.init_add_dialog()
        
+    def submited(self):
+        submited = self.mapper.submit()
+        self.model.submitAll()
+        if submited:
+            self.accept()
+        else:
+            logging.warning(self.model.lastError().text())
+
+class ReservationForm(MappedQDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+
+        self.widgets['sejour_id'] = QComboBox()
+        self.widgets['date_start'] = QCalendarWidget()
+        self.widgets['date_stop'] = QCalendarWidget()
+        self.widgets['observation'] = QTextEdit()
+
+        self.widgets['sejour_id'].setModel(model.relationModel(1))
+        self.widgets['sejour_id'].setModelColumn(1)
+        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+        self.init_add_dialog()
+
     def submited(self):
         submited = self.mapper.submit()
         self.model.submitAll()

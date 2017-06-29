@@ -17,7 +17,7 @@ from db import Query
 from views import (
     AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
     DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
-    ContenuCheckerDialog, LieuForm)
+    ContenuCheckerDialog, LieuForm, ReservationForm)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -47,6 +47,7 @@ class MainWindow(QMainWindow):
                 '&Malle type', self.add_malle_type),
             'add_malle': self._add_action('&Malle', self.add_malle),
             'add_sejour': self._add_action('&Séjour', self.add_sejour),
+            'add_reservation': self._add_action('&Reservation', self.add_reservation),
             'view_malles':self._add_action('&Malles', self.display_malles),
             'view_malles_types':self._add_action(
                 '&Types de malles', self.display_malles_types),
@@ -78,6 +79,7 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.db_actions['add_malle_type'])
         addMenu.addAction(self.db_actions['add_malle'])
         addMenu.addAction(self.db_actions['add_sejour'])
+        addMenu.addAction(self.db_actions['add_reservation'])
 
         self.statusBar().showMessage('')
         self.setMinimumSize(850,300)
@@ -132,6 +134,9 @@ class MainWindow(QMainWindow):
 
     def add_lieu(self):
         dialog = LieuForm(None, self.models.lieux)
+
+    def add_reservation(self):
+        dialog = ReservationForm(None, self.models.reservations)
 
     def display_malles(self):
         model = Malles(self, self.db.db)

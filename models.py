@@ -27,7 +27,9 @@ class Models():
         self.lieux.setTable('lieux')
         self.lieux.select()
         self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.sejours_malles_types = SejoursMallesTypes(None, self.db)
         self.contenu_checker = ContenuChecker()
+        self.reservations = Reservations(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -133,6 +135,19 @@ class Sejours(QSqlRelationalTableModel):
         self.setRelation(2, rel)
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
+
+class SejoursMallesTypes(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super().__init__(parent, db)
+        self.setTable('sejours_malles_types_rel')
+        rel = QSqlRelation('malles_types', 'id', 'denomination')
+
+class Reservations(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super().__init__(parent, db)
+        self.setTable('reservations')
+        rel = QSqlRelation('sejours', 'id', 'nom')
+        self.setRelation(1, rel)
 
 class ContenuChecker(QSqlQueryModel):
     def __init__(self):
