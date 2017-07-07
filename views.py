@@ -206,12 +206,15 @@ class AddProduct(MappedQDialog):
         self.widgets['fournisseur_id'] = QComboBox()
         self.widgets['fournisseur_id'].setModel(fournisseurs_model)
         self.widgets['fournisseur_id'].setModelColumn(1)
+        self.widgets['reference'] = QLineEdit()
+
         add_fournisseur_button = QPushButton('+')
 
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
 
         self.mapper.addMapping(self.widgets['nom'], 1)
         self.mapper.addMapping(self.widgets['fournisseur_id'], 2)
+        self.mapper.addMapping(self.widgets['reference'], 3)
         
         self.layout = QFormLayout(self)
         self.layout.addRow('Nom', self.widgets['nom'])
@@ -219,6 +222,7 @@ class AddProduct(MappedQDialog):
         fournisseur_layout.addWidget(self.widgets['fournisseur_id'])
         fournisseur_layout.addWidget(add_fournisseur_button)
         self.layout.addRow('Fournisseur', fournisseur_layout)
+        self.layout.addRow('Référence fournisseur', self.widgets['reference'])
 
         add_fournisseur_button.clicked.connect(parent.add_fournisseur)
         self.auto_default_buttons()
