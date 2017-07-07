@@ -394,6 +394,7 @@ class ContenuMalle(QDialog):
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
 
         self.add_button = QPushButton('+')
+        self.remove_button = QPushButton('-')
         self.import_type_button = QPushButton('importer la malle type')
         self.finish_button = QPushButton('Terminé')
         
@@ -403,11 +404,13 @@ class ContenuMalle(QDialog):
         self.layout.addWidget(self.products_table)
         buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.add_button)
+        buttons_layout.addWidget(self.remove_button)
         buttons_layout.addWidget(self.finish_button)
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
         
         self.add_button.clicked.connect(self.add_row)
+        self.remove_button.clicked.connect(self.remove_row)
         self.import_type_button.clicked.connect(self.import_type)
         self.finish_button.clicked.connect(self.terminated)
 
@@ -445,6 +448,13 @@ class ContenuMalle(QDialog):
         if not inserted:
             logging.warning(
                 'Row not inserted in model {0}'.format(self.model))
+
+    def remove_row(self):
+        select = self.products_table.selectionModel()
+        row = select.currentIndex().row()
+        logging.debug(row)
+        self.model.removeRow(row)
+        self.model.submitAll()
 
     def import_type(self):
         type_id = self.db.get_(
@@ -521,6 +531,7 @@ class ContenuType(QDialog):
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
 
         self.add_button = QPushButton('+')
+        self.remove_button = QPushButton('-')
         self.finish_button = QPushButton('Terminé')
         
         self.layout = QVBoxLayout()
@@ -528,11 +539,13 @@ class ContenuType(QDialog):
         self.layout.addWidget(self.products_table)
         buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.add_button)
+        buttons_layout.addWidget(self.remove_button)
         buttons_layout.addWidget(self.finish_button)
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
         
         self.add_button.clicked.connect(self.add_row)
+        self.remove_button.clicked.connect(self.remove_row)
         self.finish_button.clicked.connect(self.terminated)
 
         self.exec_()
@@ -557,11 +570,23 @@ class ContenuType(QDialog):
             submited = self.submit_row()
         inserted = self.model.insertRow(self.model.rowCount())
         record = self.model.record()
+        record.setGenerated('id', False)
         record.setValue('type_id', self.type_id)
         record_is_set = self.model.setRecord(self.model.rowCount() -1, record)
         if not inserted:
             logging.warning(
                 'Row not inserted in model {0}'.format(self.model))
+    
+    def remove_row(self):
+        select = self.products_table.selectionModel()
+        row = select.currentIndex().row()
+        logging.debug(row)
+        removed = self.model.removeRow(row)
+        logging.debug(removed)
+        logging.debug(self.model)
+        submited = self.model.submitAll()
+        if not submited:
+            logging.warning(self.model.lastError().text())
 
     def terminated(self):
         if self.model.isDirty():

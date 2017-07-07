@@ -86,12 +86,13 @@ CREATE TABLE contenu_malles(
 	FOREIGN KEY (etat_id) REFERENCES etats(id)
 	);
 CREATE TABLE contenu_type(
+    id serial PRIMARY KEY,
 	type_id integer,
 	produit_id integer,
 	quantity integer,
 	FOREIGN KEY (type_id) REFERENCES malles_types(id),
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
-    PRIMARY KEY (type_id, produit_id)
+    UNIQUE (type_id, produit_id)
 	);
 CREATE TABLE commandes(
 	id serial PRIMARY KEY,

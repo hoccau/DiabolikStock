@@ -109,7 +109,7 @@ class ContenuType(QSqlRelationalTableModel):
         
         self.setTable('contenu_type')
         self.setRelation(
-            1, QSqlRelation('produits', 'id', 'nom'))
+            2, QSqlRelation('produits', 'id', 'nom'))
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
