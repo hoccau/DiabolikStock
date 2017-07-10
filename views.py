@@ -70,11 +70,34 @@ class RowEditDialog(DisplayTableViewDialog):
         self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.view.doubleClicked.connect(self.edit_row)
 
+        add_button = QPushButton('+')
+        remove_button = QPushButton('-')
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(remove_button)
+        self.layout().insertLayout(1, button_layout)
+
+        add_button.clicked.connect(self.add_row)
+        remove_button.clicked.connect(self.remove_row)
+
+    def remove_row(self):
+        select = self.view.selectionModel()
+        row = select.currentIndex().row()
+        removed = self.model.removeRow(row)
+        logging.debug(removed)
+        if not removed:
+            logging.debug(self.model.lastError().text())
+
 class MallesDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.exec_()
         self.parent = parent
+
+    def add_row(self):
+        self.parent.add_malle()
+        self.model.select()
 
     def edit_row(self, index):
         reference = self.model.data(self.model.index(index.row(), 0))
@@ -84,16 +107,45 @@ class MallesDialog(RowEditDialog):
             self.parent.db,
             reference)
 
+    def remove_row(self):
+        reply = QMessageBox.question(
+            None, 'Sûr(e) ?', "Vous allez détruire définitivement cette malle, "\
+            + "ainsi que son contenu. Êtes-vous sûr(e) ?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
+        super().remove_row()
+        res = self.model.submitAll()
+        logging.debug(res)
+
 class MallesTypesDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.view.hideColumn(0) # hide id
         self.exec_()
 
+    def add_row(self):
+        self.parent.add_malle_type()
+        self.model.select()
+
     def edit_row(self, index):
         type_id = self.model.data(self.model.index(index.row(), 0))
         denomination = self.model.data(self.model.index(index.row(), 1))
         ContenuType(self, self.parent.models.contenu_type, type_id, denomination)
+
+    def remove_row(self):
+        reply = QMessageBox.question(
+            None, 'Sûr(e) ?', "À priori, vous n'avez pas à détruire un type. "\
+            + "Ne répondez oui que si vous savez exactement ce que vous "\
+            + "faîtes. Voulez-vous vraiment détruire un type, ainsi que tout "\
+            + "le contenu type associé ?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
+        super().remove_row()
+
 
 class MappedQDialog(QDialog):
     """ Abstract class for inputs forms views """
@@ -365,9 +417,11 @@ class AddMalle(MappedQDialog):
     def submited(self):
         submited = self.mapper.submit()
         if submited:
-            self.model.select()
             logging.info('Malle added.')
-            self.accept()
+            submited = self.model.submitAll()
+            if submited:
+                self.model.select()
+                self.accept()
             contenu = ContenuMalle(
                 self,
                 self.contenu_malles_model,
@@ -456,7 +510,6 @@ class ContenuMalle(QDialog):
     def remove_row(self):
         select = self.products_table.selectionModel()
         row = select.currentIndex().row()
-        logging.debug(row)
         self.model.removeRow(row)
         self.model.submitAll()
 

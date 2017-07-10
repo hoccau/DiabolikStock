@@ -69,6 +69,7 @@ class Malles(QSqlRelationalTableModel):
         self.setTable('malles')
         self.setRelation(
             1, QSqlRelation('malles_types', 'id', 'denomination'))
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
 class ContenuMalles(QSqlRelationalTableModel):
@@ -102,6 +103,19 @@ class MallesTypesWithMalles(QSqlQueryModel):
             + "GROUP BY id")
         self.setHeaderData(1, Qt.Horizontal, "Dénomination")
         self.setHeaderData(2, Qt.Horizontal, "Malles")
+
+    def removeRow(self, row):
+        id_ = self.data(self.index(row, 0))
+        logging.debug(id_)
+        query = QSqlQuery()
+        query.prepare("DELETE FROM malles_types WHERE id = :id_")
+        query.bindValue(':id_', id_)
+        res = query.exec_()
+        if res:
+            logging.info("Malle type id: " + str(id_) + " deleted.")
+            self.select()
+        else:
+            logging.warning(query.lastError().text())
 
 class ContenuType(QSqlRelationalTableModel):
     def __init__(self, parent, db):

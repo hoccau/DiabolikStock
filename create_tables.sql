@@ -84,7 +84,7 @@ CREATE TABLE contenu_malles(
     etat_id integer,
 	UNIQUE (produit_id, malle_ref),
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
-	FOREIGN KEY (malle_ref) REFERENCES malles(reference),
+	FOREIGN KEY (malle_ref) REFERENCES malles(reference) ON DELETE CASCADE,
 	FOREIGN KEY (etat_id) REFERENCES etats(id)
 	);
 CREATE TABLE contenu_type(
@@ -92,7 +92,7 @@ CREATE TABLE contenu_type(
 	type_id integer,
 	produit_id integer,
 	quantity integer,
-	FOREIGN KEY (type_id) REFERENCES malles_types(id),
+	FOREIGN KEY (type_id) REFERENCES malles_types(id) ON DELETE CASCADE,
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
     UNIQUE (type_id, produit_id)
 	);
