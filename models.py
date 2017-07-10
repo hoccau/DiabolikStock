@@ -134,11 +134,15 @@ class ProduitsModel(QSqlQueryModel):
     
     def select(self):
         self.setQuery(
-            "SELECT produits.nom, sum(quantity) FROM contenu_malles "\
-            + "INNER JOIN produits ON produit_id = produits.id "\
-            + "INNER JOIN fournisseurs "
-            + "ON fournisseurs.id = produits.fournisseur_id "\
-            + "GROUP BY produits.nom")
+            """
+            SELECT produits.nom,
+            coalesce(sum(quantity), 0) AS quantité 
+            FROM produits
+            LEFT JOIN contenu_malles ON contenu_malles.produit_id = produits.id 
+            INNER JOIN fournisseurs 
+            ON fournisseurs.id = produits.fournisseur_id 
+            GROUP BY produits.nom
+            """)
 
 class Sejours(QSqlRelationalTableModel):
     def __init__(self, parent, db):
