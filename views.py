@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget)
-from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex
+from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex, Qt
 from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -89,7 +89,7 @@ class RowEditDialog(DisplayTableViewDialog):
         if not removed:
             logging.debug(self.model.lastError().text())
 
-class MallesDialog(RowEditDialog):
+class MallesArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.exec_()
@@ -100,12 +100,12 @@ class MallesDialog(RowEditDialog):
         self.model.select()
 
     def edit_row(self, index):
-        reference = self.model.data(self.model.index(index.row(), 0))
-        ContenuMalle(
-            self, 
-            self.parent.models.contenu_malles,
-            self.parent.db,
-            reference)
+        idx = self.model.index(index.row(), 0)
+        MalleFormWithContenu(
+            self.parent, 
+            self.parent.models.malles,
+            self.parent.models,
+            idx)
 
     def remove_row(self):
         reply = QMessageBox.question(
@@ -447,15 +447,28 @@ class MalleForm(MappedQDialog):
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
         
         for i, k in enumerate(self.widgets):
+            logging.debug(str(self.widgets[k]) + ' ' + str(i))
             self.mapper.addMapping(self.widgets[k], i) 
         
-        self.auto_layout()
-        self.auto_default_buttons()
+        form_layout_left = QFormLayout()
+        form_layout_left.addRow('Référence', self.widgets['reference'])
+        form_layout_left.addRow('Type', self.widgets['type_id'])
+        form_layout_left.addRow('Lieu', self.widgets['lieu_id'])
+        form_layout_right = QFormLayout()
+        form_layout_right.addRow('Allée', self.widgets['section'])
+        form_layout_right.addRow('Étagère', self.widgets['shelf'])
+        form_layout_right.addRow('Emplacement', self.widgets['slot'])
+        layout = QHBoxLayout()
+        layout.addLayout(form_layout_left)
+        layout.addLayout(form_layout_right)
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        self.setLayout(main_layout)
+
         if index:
             self.mapper.setCurrentIndex(index.row())
         else:
             self.add_row()
-        self.exec_()
 
     def submited(self):
         submited = self.mapper.submit()
@@ -477,7 +490,40 @@ class MalleForm(MappedQDialog):
                     QMessageBox.warning(
                         self, "Erreur", "Cette référence existe déjà.")
 
-class ContenuMalle(QDialog):
+class MalleFormDialog(MalleForm):
+    def __init__(self, parent, model, models, index=None):
+        super().__init__(parent, model, models, index)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            self)
+        buttons.accepted.connect(self.submited)
+        buttons.rejected.connect(self.undo)
+        self.layout().addWidget(buttons)
+
+class MalleFormWithContenu(MalleForm):
+    def __init__(self, parent, model, models, index=None):
+        super().__init__(parent, model, models, index)
+        malle_ref = index.data()
+        self.contenu_malle = ContenuMalle(
+            parent, 
+            models.contenu_malles, 
+            parent.db,
+            malle_ref)
+        self.layout().addWidget(self.contenu_malle)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            self)
+        buttons.accepted.connect(self.submited)
+        buttons.rejected.connect(self.undo)
+        self.layout().addWidget(buttons)
+        
+        self.exec_()
+
+    def submited(self):
+        self.contenu_malle.submit_row()
+        super().submited()
+
+class ContenuMalle(QWidget):
     def __init__(self, parent, model, db, malle_ref=None):
         super(ContenuMalle, self).__init__(parent)
         
@@ -494,10 +540,9 @@ class ContenuMalle(QDialog):
         self.products_table.setModel(self.model)
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
 
+        self.import_type_button = QPushButton('importer la malle type')
         self.add_button = QPushButton('+')
         self.remove_button = QPushButton('-')
-        self.import_type_button = QPushButton('importer la malle type')
-        self.finish_button = QPushButton('Terminé')
         
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.import_type_button)
@@ -506,17 +551,14 @@ class ContenuMalle(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.add_button)
         buttons_layout.addWidget(self.remove_button)
-        buttons_layout.addWidget(self.finish_button)
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
         
         self.add_button.clicked.connect(self.add_row)
         self.remove_button.clicked.connect(self.remove_row)
         self.import_type_button.clicked.connect(self.import_type)
-        self.finish_button.clicked.connect(self.terminated)
 
-        self.exec_()
-        
+
     def submit_row(self):
         submited = self.model.submitAll()
         if not submited:
@@ -574,6 +616,20 @@ class ContenuMalle(QDialog):
             if not submited:
                 return False
         self.close()
+
+class ContenuMalleDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        
+        self.layout = QVBoxLayout()
+        self.finish_button = QPushButton('Terminé')
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.finish_button)
+        self.layout.addLayout(buttons_layout)
+        self.setLayout(self.layout)
+        
+        self.finish_button.clicked.connect(self.terminated)
+
     
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):

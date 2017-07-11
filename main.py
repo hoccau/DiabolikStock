@@ -15,9 +15,10 @@ from models import (
     ContenuChecker, Sejours)
 from db import Query
 from views import (
-    MalleForm, AddMalleType, AddInput, AddFournisseur, ProductForm, StartupView,
-    DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
-    ContenuCheckerDialog, LieuForm, ReservationForm, ProduitsArrayDialog)
+    MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm, 
+    StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog, 
+    SejourForm, ContenuCheckerDialog, LieuForm, ReservationForm, 
+    ProduitsArrayDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -124,7 +125,8 @@ class MainWindow(QMainWindow):
         AddInput(self, self.models.inputs)
 
     def add_malle(self):
-        MalleForm(self, self.models.malles, self.models)
+        malle = MalleFormDialog(self, self.models.malles, self.models)
+        malle.exec_()
     
     def add_malle_type(self):
         AddMalleType(self, self.models.malles_types)
@@ -139,8 +141,7 @@ class MainWindow(QMainWindow):
         dialog = ReservationForm(None, self.models.reservations)
 
     def display_malles(self):
-        model = Malles(self, self.db.db)
-        MallesDialog(self, model)
+        MallesArrayDialog(self, self.models.malles)
 
     def display_malles_types(self):
         MallesTypesDialog(self, MallesTypesWithMalles())
