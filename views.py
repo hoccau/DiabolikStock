@@ -146,6 +146,36 @@ class MallesTypesDialog(RowEditDialog):
             return False
         super().remove_row()
 
+class ProduitsArrayDialog(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.exec_()
+
+    def add_row(self):
+        ProductForm(
+            self.parent,
+            self.parent.models.produits,
+            self.parent.models.fournisseurs)
+        self.model.select()
+
+    def edit_row(self, index):
+        ProductForm(
+            self.parent,
+            self.parent.models.produits,
+            self.parent.models.fournisseurs,
+            index = index)
+        self.model.select()
+
+    def remove_row(self, index):
+        reply = QMessageBox.question(
+            None, 'Que souhaitez-vous faire ? ', "Vous ne pouvez pas détruire "\
+            + "un produit. Voulez-vous mettre sa quantité en stock à 0 ? ",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            QMessageBox.information(
+                None, "Patientez donc un peu...",
+                "Cette fonctionnalité n'est pas encore disponible")
 
 class MappedQDialog(QDialog):
     """ Abstract class for inputs forms views """
@@ -250,9 +280,9 @@ class AddFournisseur(Fournisseur):
                 logging.info("Le fournisseur a bien été enregistré")
                 self.accept()
 
-class AddProduct(MappedQDialog):
-    def __init__(self, parent, model, fournisseurs_model):
-        super(AddProduct, self).__init__(parent, model)
+class ProductForm(MappedQDialog):
+    def __init__(self, parent, model, fournisseurs_model, index=None):
+        super().__init__(parent, model)
 
         self.widgets['nom'] = QLineEdit()
         self.widgets['fournisseur_id'] = QComboBox()
@@ -278,7 +308,10 @@ class AddProduct(MappedQDialog):
 
         add_fournisseur_button.clicked.connect(parent.add_fournisseur)
         self.auto_default_buttons()
-        self.add_row()
+        if index:
+            self.mapper.setCurrentIndex(index.row())
+        else:
+            self.add_row()
         self.exec_()
 
     def submited(self):

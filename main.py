@@ -15,9 +15,9 @@ from models import (
     ContenuChecker, Sejours)
 from db import Query
 from views import (
-    AddMalle, AddMalleType, AddInput, AddFournisseur, AddProduct, StartupView,
+    AddMalle, AddMalleType, AddInput, AddFournisseur, ProductForm, StartupView,
     DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
-    ContenuCheckerDialog, LieuForm, ReservationForm)
+    ContenuCheckerDialog, LieuForm, ReservationForm, ProduitsArrayDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         AddFournisseur(self, self.models.fournisseurs)
 
     def add_product(self):
-        AddProduct(self, self.models.produits, self.models.fournisseurs)
+        ProductForm(self, self.models.produits, self.models.fournisseurs)
 
     def add_input(self):
         AddInput(self, self.models.inputs)
@@ -154,8 +154,7 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def display_produits(self):
-        dialog = DisplayTableViewDialog(self, ProduitsModel())
-        dialog.exec_()
+        dialog = ProduitsArrayDialog(self, ProduitsModel())
 
     def contenu_checker(self):
         dialog = ContenuCheckerDialog(self, self.models)
