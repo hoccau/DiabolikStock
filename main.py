@@ -15,7 +15,7 @@ from models import (
     ContenuChecker, Sejours)
 from db import Query
 from views import (
-    AddMalle, AddMalleType, AddInput, AddFournisseur, ProductForm, StartupView,
+    MalleForm, AddMalleType, AddInput, AddFournisseur, ProductForm, StartupView,
     DisplayTableViewDialog, MallesDialog, MallesTypesDialog, SejourForm, 
     ContenuCheckerDialog, LieuForm, ReservationForm, ProduitsArrayDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         AddInput(self, self.models.inputs)
 
     def add_malle(self):
-        AddMalle(self, self.models.malles, self.models.malles_types)
+        MalleForm(self, self.models.malles, self.models)
     
     def add_malle_type(self):
         AddMalleType(self, self.models.malles_types)

@@ -41,8 +41,13 @@ CREATE TABLE malles_types(
 CREATE TABLE malles(
 	reference varchar(6) PRIMARY KEY,
 	type_id integer,
+    lieu_id integer, 
+    section varchar(20),
+    shelf varchar(20),
+    slot varchar(20),
     observation varchar(1024),
-	FOREIGN KEY (type_id) REFERENCES malles_types(id)
+	FOREIGN KEY (type_id) REFERENCES malles_types(id),
+    FOREIGN KEY (lieu_id) REFERENCES lieux(id)
 	);
 INSERT INTO malles(reference, observation) VALUES(
     'VSTOCK', 'Malle virtuelle, contenant le stock disponible. Si un 

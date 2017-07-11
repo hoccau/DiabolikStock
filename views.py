@@ -423,49 +423,59 @@ class AddInput(MappedQDialog):
         quantity = self.widgets['quantity'].value()
         self.model.fill_stock(product_id, quantity)
 
-class AddMalle(MappedQDialog):
-    def __init__(self, parent, model, malles_type_model):
-        super(AddMalle, self).__init__(parent, model)
+class MalleForm(MappedQDialog):
+    def __init__(self, parent, model, models, index=None):
+        super().__init__(parent, model)
 
         self.contenu_malles_model = parent.models.contenu_malles
         self.db = parent.db
 
         self.widgets['reference'] = QLineEdit()
         self.widgets['type_id'] = QComboBox()
+        self.widgets['lieu_id'] = QComboBox() 
+        self.widgets['section'] = QLineEdit()
+        self.widgets['shelf'] = QLineEdit()
+        self.widgets['slot'] = QLineEdit()
 
-        self.widgets['type_id'].setModel(malles_type_model)
+        self.widgets['type_id'].setModel(models.malles_types)
         self.widgets['type_id'].setModelColumn(
-            malles_type_model.fieldIndex('denomination'))
+            models.malles_types.fieldIndex('denomination'))
+        self.widgets['lieu_id'].setModel(models.lieux)
+        self.widgets['lieu_id'].setModelColumn(
+            models.malles_types.fieldIndex('nom'))
         
         self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
         
-        self.mapper.addMapping(self.widgets['reference'], 0)
-        self.mapper.addMapping(self.widgets['type_id'], 1)
-
+        for i, k in enumerate(self.widgets):
+            self.mapper.addMapping(self.widgets[k], i) 
+        
         self.auto_layout()
         self.auto_default_buttons()
-        self.add_row()
+        if index:
+            self.mapper.setCurrentIndex(index.row())
+        else:
+            self.add_row()
         self.exec_()
 
     def submited(self):
         submited = self.mapper.submit()
         if submited:
-            logging.info('Malle added.')
             submited = self.model.submitAll()
             if submited:
                 self.model.select()
                 self.accept()
-            contenu = ContenuMalle(
-                self,
-                self.contenu_malles_model,
-                self.db,
-                self.widgets['reference'].text())
-        else:
-            error = self.model.lastError()
-            logging.warning(error.text())
-            if error.nativeErrorCode() == '23505':
-                QMessageBox.warning(
-                    self, "Erreur", "Cette référence existe déjà.")
+                logging.info('Malle added.')
+                contenu = ContenuMalle(
+                    self,
+                    self.contenu_malles_model,
+                    self.db,
+                    self.widgets['reference'].text())
+            else:
+                error = self.model.lastError()
+                logging.warning(error.text())
+                if error.nativeErrorCode() == '23505':
+                    QMessageBox.warning(
+                        self, "Erreur", "Cette référence existe déjà.")
 
 class ContenuMalle(QDialog):
     def __init__(self, parent, model, db, malle_ref=None):

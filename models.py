@@ -69,6 +69,9 @@ class Malles(QSqlRelationalTableModel):
         self.setTable('malles')
         self.setRelation(
             1, QSqlRelation('malles_types', 'id', 'denomination'))
+        self.setRelation(
+            2, QSqlRelation('lieux', 'id', 'nom'))
+        self.setJoinMode(QSqlRelationalTableModel.LeftJoin)
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
