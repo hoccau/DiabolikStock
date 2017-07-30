@@ -19,22 +19,25 @@ class StartupView(QWidget):
         
         self.grid = QGridLayout()
 
-        malle_button = self._create_button('caisse.png', 'Nouvelle malle')
-        malle_type_button = self._create_button('caisse_type.png', 'Nouveau type')
-        fournisseur_button = self._create_button('fournisseur.png', 'Nouveau fournisseur')
+        malle_button = self._create_button('caisse.png', 'Malles')
+        malle_type_button = self._create_button('caisse_type.png', 'Types')
+        fournisseur_button = self._create_button('fournisseur.png', 'Fournisseurs')
         input_button = self._create_button('input.png', 'Entrée de Produit')
+        product_button = self._create_button('produit.png', 'Produits')
         
         self.grid.addWidget(malle_button, 0, 0)
         self.grid.addWidget(malle_type_button, 0, 1)
         self.grid.addWidget(fournisseur_button, 1, 0)
         self.grid.addWidget(input_button, 1, 1)
+        self.grid.addWidget(product_button, 1, 2)
 
         self.setLayout(self.grid)
 
-        malle_button.clicked.connect(parent.add_malle)
-        malle_type_button.clicked.connect(parent.add_malle_type)
+        malle_button.clicked.connect(parent.display_malles)
+        malle_type_button.clicked.connect(parent.display_malles_types)
         input_button.clicked.connect(parent.add_input)
-        fournisseur_button.clicked.connect(parent.add_fournisseur)
+        product_button.clicked.connect(parent.display_produits)
+        fournisseur_button.clicked.connect(parent.display_fournisseurs)
 
     def _create_button(self, image, text):
         button = QPushButton()
