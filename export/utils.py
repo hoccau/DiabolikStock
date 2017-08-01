@@ -5,8 +5,17 @@
 Functions for pdf exports
 """
 
+import logging
+from PyQt5.QtPrintSupport import QPrinter
 from PyQt5.QtGui import QTextDocument
 import os
+
+def pdf_export(doc, filename):
+    printer = QPrinter()
+    printer.setOutputFileName(filename)
+    printer.setOutputFormat(QPrinter.PdfFormat)
+    printer.setPageSize(QPrinter.A4)
+    doc.print_(printer)
 
 def html_doc(html_content):
     doc = QTextDocument()

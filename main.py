@@ -8,7 +8,8 @@ Logiciel de gestion du matériel pour l'association Diabolo
 
 from PyQt5 import QtSql
 from PyQt5.QtWidgets import (
-    QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog)
+    QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog,
+    QInputDialog)
 from PyQt5.QtGui import QIcon
 from models import (
     Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel,
@@ -40,6 +41,7 @@ class MainWindow(QMainWindow):
         connectAction = self._add_action('&Connection', self.connect_db, 'Ctrl+C')
         self.db_actions = {
             'export_commandes': self._add_action('&Commandes', self.export_commandes),
+            'export_checker': self._add_action('&Malle', self.export_checker),
             'add_fournisseur': self._add_action(
                 '&Fournisseur', self.add_fournisseur),
             'add_produit': self._add_action('&Produit', self.add_product),
@@ -62,8 +64,9 @@ class MainWindow(QMainWindow):
 
         fileMenu = menubar.addMenu('&Fichier')
         fileMenu.addAction(connectAction)
-        export_menu = fileMenu.addMenu('&Exporter')
+        export_menu = fileMenu.addMenu('&Exporter en PDF')
         export_menu.addAction(self.db_actions['export_commandes'])
+        export_menu.addAction(self.db_actions['export_checker'])
         fileMenu.addAction(exitAction)
         edit_menu = menubar.addMenu('&Édition')
         view_menu = menubar.addMenu('&Vue')
@@ -177,6 +180,19 @@ class MainWindow(QMainWindow):
         from export import commandes
         filename = self.get_pdf_filename()
         commandes.create_pdf(filename, self.db) 
+
+    def export_checker(self):
+        from export import malle_checker
+        malle_ref, ok = QInputDialog.getText(self, '', 'Entrez la référence')
+        if not ok or not malle_ref:
+            return False
+        doc = malle_checker.create_doc(self.db, malle_ref)
+        if not doc[0]:
+            QMessageBox.warning(self, "Erreur", doc[1])
+            return False
+        from export.utils import pdf_export
+        filename = self.get_pdf_filename()
+        pdf_export(doc[1], filename) 
 
 if __name__ == '__main__':
     import sys, os

@@ -9,17 +9,12 @@ import logging
 from collections import OrderedDict
 from PyQt5.QtCore import QDateTime, QDate
 from PyQt5.QtPrintSupport import QPrinter
-from .utils import html_doc
+from .utils import html_doc, pdf_export
 
 def create_pdf(filename='bonDeCommande.pdf', db=None):
     html = header() + html_commande(db)
-    print(html)
     doc = html_doc(html)
-    printer = QPrinter()
-    printer.setOutputFileName(filename)
-    printer.setOutputFormat(QPrinter.PdfFormat)
-    printer.setPageSize(QPrinter.A4)
-    doc.print_(printer)
+    pdf_export(doc, filename)
 
 def header():
     html = "<h1>Bon de commande</H1>"

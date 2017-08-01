@@ -3,8 +3,13 @@ H2{
     margin-top:20;
 }
 th{
-    padding:20;
+    padding:2;
+}
+td{
+    border-style:none;
 }
 table{
-    border-style:groove;
+    border-style:inset;
+    padding:2px;
+    margin:1px;
 }
