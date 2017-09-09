@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget)
-from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex, Qt
+from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex, Qt, QVariant
 from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -295,7 +295,7 @@ class ProductForm(MappedQDialog):
 
         add_fournisseur_button = QPushButton('+')
 
-        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+        self.mapper.setItemDelegate(QSqlRelationalDelegateWithNullValues(self))
 
         self.mapper.addMapping(self.widgets['nom'], 1)
         self.mapper.addMapping(self.widgets['fournisseur_id'], 2)
@@ -324,6 +324,16 @@ class ProductForm(MappedQDialog):
             self.accept()
         else:
             logging.warning(self.model.lastError().text())
+
+class QSqlRelationalDelegateWithNullValues(QSqlRelationalDelegate):
+    """ Delegate for storing NULL value in database when no data (instead of 
+    empty string) in 'reference' field """
+    
+    def setModelData(self, editor, model, index):
+        if index.column() == 3 and ''.join(editor.text().split()) == '':
+            model.setData(index, QVariant()) #QVariant() means NULL value in db 
+        else:
+            super().setModelData(editor, model, index)
 
 class AddInput(MappedQDialog):
     def __init__(self, parent, model):
