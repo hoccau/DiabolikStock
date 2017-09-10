@@ -11,6 +11,7 @@ from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
+from utils import displayed_error
 import logging
 
 class StartupView(QWidget):
@@ -323,7 +324,7 @@ class ProductForm(MappedQDialog):
             logging.info('produit added.')
             self.accept()
         else:
-            logging.warning(self.model.lastError().text())
+            displayed_error(self.model.lastError())
 
 class QSqlRelationalDelegateWithNullValues(QSqlRelationalDelegate):
     """ Delegate for storing NULL value in database when no data (instead of 
@@ -332,6 +333,9 @@ class QSqlRelationalDelegateWithNullValues(QSqlRelationalDelegate):
     def setModelData(self, editor, model, index):
         if index.column() == 3 and ''.join(editor.text().split()) == '':
             model.setData(index, QVariant()) #QVariant() means NULL value in db 
+        elif index.column() == 1:
+            data = editor.text().lower()
+            model.setData(index, data)
         else:
             super().setModelData(editor, model, index)
 
