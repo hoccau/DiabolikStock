@@ -556,6 +556,8 @@ class ContenuMalle(QWidget):
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
+        self.products_table.setColumnHidden(0, True)
+        self.products_table.setColumnHidden(1, True)
 
         self.import_type_button = QPushButton('importer la malle type')
         self.add_button = QPushButton('+')
@@ -662,7 +664,6 @@ class ContenuMalleDialog(QDialog):
         self.setLayout(self.layout)
         
         self.finish_button.clicked.connect(self.terminated)
-
     
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
@@ -720,6 +721,8 @@ class ContenuType(QDialog):
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
         completer_delegate = CompleterDelegate(self)
         self.products_table.setItemDelegateForColumn(2, completer_delegate)
+        self.products_table.setColumnHidden(0, True)
+        self.products_table.setColumnHidden(1, True)
 
         self.add_button = QPushButton('+')
         self.remove_button = QPushButton('-')
