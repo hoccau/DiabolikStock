@@ -556,6 +556,8 @@ class ContenuMalle(QWidget):
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
+        completer_delegate = ComboBoxCompleterDelegate(self)
+        self.products_table.setItemDelegateForColumn(2, completer_delegate)
         self.products_table.setColumnHidden(0, True)
         self.products_table.setColumnHidden(1, True)
 
@@ -636,19 +638,20 @@ class ContenuMalle(QWidget):
                 return False
         self.close()
 
-class CompleterDelegate(QSqlRelationalDelegate):
-    def __init__(self, parent=None):
+class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
+    def __init__(self, parent=None, relation_model=2):
         super().__init__(parent)
+        self.relation_model = relation_model
 
     def createEditor(self, parent, option, index):
         editor = QComboBox(parent)
         editor.setEditable(True)
-        editor.setModel(index.model().relationModel(2))
+        editor.setModel(index.model().relationModel(self.relation_model))
         editor.setModelColumn(1)
         return editor
 
     def setEditorData(self, editor, index):
-        value = index.model().relationModel(2).data(index)
+        value = index.model().relationModel(self.relation_model).data(index)
         if value:
             editor.setCurrentIndex(int(value))
 
@@ -719,7 +722,7 @@ class ContenuType(QDialog):
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
-        completer_delegate = CompleterDelegate(self)
+        completer_delegate = ComboBoxCompleterDelegate(self)
         self.products_table.setItemDelegateForColumn(2, completer_delegate)
         self.products_table.setColumnHidden(0, True)
         self.products_table.setColumnHidden(1, True)
