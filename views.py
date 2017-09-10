@@ -634,6 +634,22 @@ class ContenuMalle(QWidget):
                 return False
         self.close()
 
+class CompleterDelegate(QSqlRelationalDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        editor.setEditable(True)
+        editor.setModel(index.model().relationModel(2))
+        editor.setModelColumn(1)
+        return editor
+
+    def setEditorData(self, editor, index):
+        value = index.model().relationModel(2).data(index)
+        if value:
+            editor.setCurrentIndex(int(value))
+
 class ContenuMalleDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
@@ -702,6 +718,8 @@ class ContenuType(QDialog):
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
         self.products_table.setItemDelegate(QSqlRelationalDelegate())
+        completer_delegate = CompleterDelegate(self)
+        self.products_table.setItemDelegateForColumn(2, completer_delegate)
 
         self.add_button = QPushButton('+')
         self.remove_button = QPushButton('-')
