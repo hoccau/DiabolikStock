@@ -1,7 +1,7 @@
 -- File used to create blank database structure --
 -- use \i create_table.sql --
 
-CREATE TABLE lieux(
+CREATE TABLE IF NOT EXISTS lieux(
 	id serial PRIMARY KEY,
     nom varchar(25),
 	ville varchar(25),
@@ -10,12 +10,12 @@ CREATE TABLE lieux(
 	rue varchar(30),
     UNIQUE(nom)
 	);
-CREATE TABLE vehicules(
+CREATE TABLE IF NOT EXISTS vehicules(
 	immatriculation char(7) PRIMARY KEY,
 	model varchar(20),
 	nbr_places integer
 	);
-CREATE TABLE sejours(
+CREATE TABLE IF NOT EXISTS sejours(
 	id serial PRIMARY KEY,
 	nom varchar(20),
 	lieu_id integer,
@@ -24,7 +24,7 @@ CREATE TABLE sejours(
 	observation varchar(255),
 	FOREIGN KEY (lieu_id) REFERENCES lieux(id)
 	);
-CREATE TABLE reservations(
+CREATE TABLE IF NOT EXISTS reservations(
 	id serial PRIMARY KEY,
 	sejour_id integer,
 	date_start date,
@@ -32,13 +32,13 @@ CREATE TABLE reservations(
 	observation varchar(255),
 	FOREIGN KEY (sejour_id) REFERENCES sejours(id)
 	);
-CREATE TABLE malles_types(
+CREATE TABLE IF NOT EXISTS malles_types(
     id serial PRIMARY KEY,
 	denomination varchar(20),
 	observation varchar(255),
     UNIQUE(denomination)
 	);
-CREATE TABLE malles(
+CREATE TABLE IF NOT EXISTS malles(
 	reference varchar(6) PRIMARY KEY,
 	type_id integer,
     lieu_id integer, 
@@ -52,11 +52,11 @@ CREATE TABLE malles(
 INSERT INTO malles(reference, observation) VALUES(
     'VSTOCK', 'Malle virtuelle, contenant le stock disponible. Si un 
     produit est entré, il est automatiquement ajouté à cette malle.');
-CREATE TABLE reservations_malles_rel(
+CREATE TABLE IF NOT EXISTS reservations_malles_rel(
 	reservation_id integer,
 	malle_ref varchar(6) REFERENCES malles(reference)
 	);
-CREATE TABLE fournisseurs(
+CREATE TABLE IF NOT EXISTS fournisseurs(
 	id serial PRIMARY KEY,
 	nom varchar(30) NOT NULL,
 	email varchar(30),
@@ -64,15 +64,20 @@ CREATE TABLE fournisseurs(
 	observation varchar(255),
     UNIQUE(nom)
 	);
-CREATE TABLE produits(
+CREATE TABLE IF NOT EXISTS produits(
 	id serial PRIMARY KEY,
 	nom varchar(30) NOT NULL,
 	fournisseur_id integer REFERENCES fournisseurs(id),
-	reference varchar(30),
-    UNIQUE(nom),
-    UNIQUE (fournisseur_id, reference)
+    UNIQUE(nom)
 	);
-CREATE TABLE etats(
+CREATE TABLE IF NOT EXISTS produits_fournisseur_rel(
+    id serial PRIMARY KEY,
+    fournisseur_id integer REFERENCES fournisseurs(id),
+    produit_id integer REFERENCES produits(id),
+    reference varchar(30),
+    UNIQUE (fournisseur_id, produit_id)
+    );
+CREATE TABLE IF NOT EXISTS etats(
     id integer PRIMARY KEY,
     etat varchar(100)
     );
@@ -81,7 +86,7 @@ INSERT INTO etats(id, etat) VALUES(2, 'bon');
 INSERT INTO etats(id, etat) VALUES(3, 'mauvais');
 INSERT INTO etats(id, etat) VALUES(4, 'HS');
 
-CREATE TABLE contenu_malles(
+CREATE TABLE IF NOT EXISTS contenu_malles(
     id serial PRIMARY KEY,
 	malle_ref varchar(6) NOT NULL,
 	produit_id integer NOT NULL,
@@ -92,7 +97,7 @@ CREATE TABLE contenu_malles(
 	FOREIGN KEY (malle_ref) REFERENCES malles(reference) ON DELETE CASCADE,
 	FOREIGN KEY (etat_id) REFERENCES etats(id)
 	);
-CREATE TABLE contenu_type(
+CREATE TABLE IF NOT EXISTS contenu_type(
     id serial PRIMARY KEY,
 	type_id integer,
 	produit_id integer,
@@ -101,7 +106,7 @@ CREATE TABLE contenu_type(
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
     UNIQUE (type_id, produit_id)
 	);
-CREATE TABLE commandes(
+CREATE TABLE IF NOT EXISTS commandes(
 	id serial PRIMARY KEY,
 	fournisseur_id integer NOT NULL,
 	produit_id integer NOT NULL,
@@ -111,7 +116,7 @@ CREATE TABLE commandes(
 	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);
 
-CREATE TABLE inputs(
+CREATE TABLE IF NOT EXISTS inputs(
 	id serial PRIMARY KEY,
 	fournisseur_id integer,
 	produit_id integer NOT NULL,
@@ -121,7 +126,7 @@ CREATE TABLE inputs(
 	FOREIGN KEY (fournisseur_id) REFERENCES fournisseurs(id),
 	FOREIGN KEY (produit_id) REFERENCES produits(id)
 	);
-CREATE TABLE sejours_malles_types_rel(
+CREATE TABLE IF NOT EXISTS sejours_malles_types_rel(
 	sejour_id integer,
 	malle_type_id integer,
 	FOREIGN KEY (sejour_id) REFERENCES sejours(id),
