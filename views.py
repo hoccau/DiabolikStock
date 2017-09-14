@@ -406,8 +406,11 @@ class AddInput(MappedQDialog):
                 self.widgets['fournisseur_id'].count() - 1)
 
     def add_new_produit(self):
-        model = self.parentWidget().models.produits
-        result = AddProduct(self, model).result()
+        models = self.parentWidget().models
+        result = ProductForm(
+            self.parentWidget(), 
+            models.produits, 
+            models.fournisseurs).result()
         logging.debug(result)
         if result:
             self.produit_model.select()
