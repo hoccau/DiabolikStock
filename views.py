@@ -163,11 +163,13 @@ class ProduitsArrayDialog(RowEditDialog):
         self.model.select()
 
     def edit_row(self, index):
+        idx = index.model().index(index.row(), 0)
+        logging.debug("index: " + str(index.row()) + " id: " + str(idx))
         ProductForm(
             self.parent,
             self.parent.models.produits,
             self.parent.models.fournisseurs,
-            index = index)
+            index = idx)
         self.model.select()
 
     def remove_row(self, index):
@@ -305,7 +307,7 @@ class ProductForm(MappedQDialog):
         fournisseur_layout = QHBoxLayout()
         fournisseur_layout.addWidget(self.widgets['fournisseur_id'])
         fournisseur_layout.addWidget(add_fournisseur_button)
-        self.layout.addRow('Fournisseur', fournisseur_layout)
+        self.layout.addRow('Fournisseur \npar défaut', fournisseur_layout)
 
         add_fournisseur_button.clicked.connect(parent.add_fournisseur)
         self.auto_default_buttons()

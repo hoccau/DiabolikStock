@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QInputDialog)
 from PyQt5.QtGui import QIcon
 from models import (
-    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, ProduitsModel,
+    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, Produits,
     ContenuChecker, Sejours)
 from db import Query
 from views import (
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def display_produits(self):
-        dialog = ProduitsArrayDialog(self, ProduitsModel())
+        dialog = ProduitsArrayDialog(self, Produits(self, self.db.db))
 
     def contenu_checker(self):
         dialog = ContenuCheckerDialog(self, self.models)
