@@ -19,7 +19,7 @@ from views import (
     MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm, 
     StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog, 
     SejourForm, ContenuCheckerDialog, LieuForm, ReservationForm, 
-    ProduitsArrayDialog)
+    ProduitsArrayDialog, InputsArray)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def display_inputs(self):
-        dialog = DisplayTableViewDialog(self, Inputs(self, self.db.db))
+        dialog = InputsArray(self, Inputs(self, self.db.db))
         dialog.exec_()
 
     def display_produits(self):

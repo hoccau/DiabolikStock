@@ -50,11 +50,12 @@ class Inputs(QSqlRelationalTableModel):
     def __init__(self, parent, db):
         super(Inputs, self).__init__(parent, db)
 
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.setTable('inputs')
         rel1 = QSqlRelation('fournisseurs', 'id', 'nom')
         self.setRelation(1, rel1)
-        self.setRelation(
-            2, QSqlRelation('produits', 'id', 'nom'))
+        rel2 = QSqlRelation('produits', 'id', 'nom')
+        self.setRelation(2, rel2)
         self.select()
 
     def fill_stock(self, produit_id, quantity):

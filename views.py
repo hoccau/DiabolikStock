@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget)
-from PyQt5.QtCore import QDate, QByteArray, QSize, QModelIndex, Qt, QVariant
+from PyQt5.QtCore import (
+    QDate, QByteArray, QSize, QModelIndex, Qt, QVariant, QSortFilterProxyModel)
 from validators import EmailValidator, PhoneValidator, CPValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -36,7 +37,7 @@ class StartupView(QWidget):
 
         malle_button.clicked.connect(parent.display_malles)
         malle_type_button.clicked.connect(parent.display_malles_types)
-        input_button.clicked.connect(parent.add_input)
+        input_button.clicked.connect(parent.display_inputs)
         product_button.clicked.connect(parent.display_produits)
         fournisseur_button.clicked.connect(parent.display_fournisseurs)
 
@@ -89,7 +90,10 @@ class RowEditDialog(DisplayTableViewDialog):
         select = self.view.selectionModel()
         row = select.currentIndex().row()
         removed = self.model.removeRow(row)
-        logging.debug(removed)
+        if removed:
+            logging.debug(
+                "removed row in " + str(self.model) + " : " + str(row))
+            self.model.submitAll()
         if not removed:
             logging.debug(self.model.lastError().text())
 
@@ -441,6 +445,133 @@ class AddInput(MappedQDialog):
 
         quantity = self.widgets['quantity'].value()
         self.model.fill_stock(product_id, quantity)
+
+class InputsArray(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+
+    def edit_row(self, index):
+        pass
+
+    def add_row(self, index):
+        AddInputArray(self.parent, self.model)
+
+class FilterFournisseurDateProxyModel(QSortFilterProxyModel):
+    """ Custom proxy to filter by fournisseur and date """
+    def __init__(self):
+        super().__init__()
+        self.date = ''
+        self.fournisseur = ''
+
+    def filterAcceptsRow(self, sourceRow, index):
+        model = self.sourceModel()
+        date = model.data(model.index(sourceRow, 3))
+        # below : because this method is called at model submit 
+        # (failed with None date value)
+        if date:  
+            date = date.toString('yyyy-MM-dd')
+        f_true = self.fournisseur == model.data(model.index(sourceRow, 1))
+        d_true = self.date == date 
+        return not False in [f_true, d_true]
+
+    def set_date_filter(self, date):
+        self.date = date
+        self.invalidateFilter()
+
+    def set_fournisseur_filter(self, fournisseur):
+        self.fournisseur = fournisseur
+        self.invalidateFilter()
+
+class AddInputArray(QDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent)
+        self.model = model
+
+        self.calendar = QCalendarWidget()
+        self.fournisseur = QComboBox()
+        self.fournisseur.setModel(parent.models.fournisseurs)
+        self.fournisseur.setModelColumn(1)
+
+        self.table = QTableView()
+
+        # We choose to subclass QSortProxyModel to have 2 different 
+        # filters. An other (simpler) way is to chain 2 instances, but it is not
+        # possible here because of the QSqlRelationaldelegate.
+        self.proxy_model = FilterFournisseurDateProxyModel()
+        self.proxy_model.setSourceModel(model)
+        self.table.setModel(self.proxy_model)
+        self.table.setItemDelegate(QSqlRelationalDelegateBehindProxy())
+        
+        self.table.setColumnHidden(0, True) # id
+        self.table.setColumnHidden(1, True) # fournisseur
+        self.table.setColumnHidden(3, True) # date
+        self.add_button = QPushButton('+')
+        self.remove_button = QPushButton('-')
+        self.finish_button = QPushButton('Terminé')
+
+        layout = QVBoxLayout()
+        head_layout = QHBoxLayout()
+        head_layout.addWidget(self.calendar)
+        head_layout.addWidget(self.fournisseur)
+        layout.addLayout(head_layout)
+        layout.addWidget(self.table)
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.add_button)
+        buttons_layout.addWidget(self.remove_button)
+        buttons_layout.addWidget(self.finish_button)
+        layout.addLayout(buttons_layout)
+        self.setLayout(layout)
+
+        self.add_button.clicked.connect(self.add_row)
+        self.remove_button.clicked.connect(self.remove_row)
+        self.finish_button.clicked.connect(self.terminated)
+        self.fournisseur.currentTextChanged.connect(self.set_fournisseur_filter)
+        self.calendar.selectionChanged.connect(self.set_date_filter)
+
+        self.set_date_filter()
+        self.set_fournisseur_filter()
+
+        self.exec_()
+
+    def set_fournisseur_filter(self):
+        self.proxy_model.set_fournisseur_filter(self.fournisseur.currentText())
+
+    def set_date_filter(self):
+        date = self.calendar.selectedDate().toString("yyyy-MM-dd")
+        self.proxy_model.set_date_filter(date)
+
+    def add_row(self):
+        if self.model.isDirty():
+            submited = self.model.submitAll()
+        inserted = self.model.insertRow(self.model.rowCount())
+        if inserted: 
+            row = self.fournisseur.currentIndex()
+            idx = self.fournisseur.model().index(row, 0)
+            id_ = idx.data()
+            date_inserted = self.model.setData(
+                self.model.index(self.model.rowCount() -1, 3),
+                self.calendar.selectedDate())
+            fournisseur_inserted = self.model.setData(
+                self.model.index(self.model.rowCount() -1, 1),
+                id_)
+            if not date_inserted or not fournisseur_inserted:
+                logging.warning(self.model.lastError().text())
+        if not inserted:
+            logging.warning(
+                'Row not inserted in model {0}'.format(self.model))
+
+    def remove_row(self):
+        select = self.table.selectionModel()
+        row = select.currentIndex().row()
+        self.model.removeRow(row)
+        self.model.submitAll()
+
+    def terminated(self):
+        submited = self.model.submitAll()
+        if not submited:
+            error = self.model.lastError()
+            logging.warning(error.text())
+        self.close()
 
 class MalleForm(MappedQDialog):
     def __init__(self, parent, model, models, index=None):
@@ -914,7 +1045,6 @@ class ReservationForm(MappedQDialog):
         else:
             logging.warning(self.model.lastError().text())
 
-
 class EtatDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -933,4 +1063,20 @@ class EtatDelegate(QStyledItemDelegate):
         idx = editor.model().index(editor.currentIndex(), 0)
         model.setData(index, editor.model().data(idx), None)
 
+class QSqlRelationalDelegateBehindProxy(QSqlRelationalDelegate):
+    """ Magic delegate to have a QSqlRelationalDelegate behind a 
+    QSortFilterProxyModel. Copied from https://stackoverflow.com/questions/28231773/qsqlrelationaltablemodel-with-qsqlrelationaldelegate-not-working-behind-qabstrac """
+    def createEditor(self, parent, option, index):
+        proxy = index.model()
+        base_index = proxy.mapToSource(index)
+        return super().createEditor(parent, option, base_index)
 
+    def setEditorData(self, editor, index):
+        proxy = index.model()
+        base_index = proxy.mapToSource(index)
+        return super().setEditorData(editor, base_index)
+
+    def setModelData(self, editor, model, index):
+        base_model = model.sourceModel()
+        base_index = model.mapToSource(index)
+        return super().setModelData(editor, base_model, base_index)
