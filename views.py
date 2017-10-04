@@ -5,7 +5,8 @@ from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
-    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget)
+    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget,
+    QAbstractItemDelegate, QItemDelegate)
 from PyQt5.QtCore import (
     QDate, QByteArray, QSize, QModelIndex, Qt, QVariant, QSortFilterProxyModel)
 from validators import EmailValidator, PhoneValidator, CPValidator
@@ -126,6 +127,19 @@ class MallesArrayDialog(RowEditDialog):
         super().remove_row()
         res = self.model.submitAll()
         logging.debug(res)
+
+class LieuxArrayDialog(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.exec_()
+        self.parent = parent
+
+    def edit_row(self, index):
+        idx = self.model.index(index.row(), 0)
+        LieuForm(None, self.parent.models.lieux, idx) 
+
+    def add_row(self):
+        LieuForm(None, self.parent.models.lieux)
 
 class MallesTypesDialog(RowEditDialog):
     def __init__(self, parent, model):
@@ -578,6 +592,7 @@ class MalleForm(MappedQDialog):
         super().__init__(parent, model)
 
         self.contenu_malles_model = parent.models.contenu_malles
+        self.lieux_model = models.lieux
         self.db = parent.db
 
         self.widgets['reference'] = QLineEdit()
@@ -586,15 +601,16 @@ class MalleForm(MappedQDialog):
         self.widgets['section'] = QLineEdit()
         self.widgets['shelf'] = QLineEdit()
         self.widgets['slot'] = QLineEdit()
+        add_lieu_button = QPushButton('+')
 
         self.widgets['type_id'].setModel(models.malles_types)
         self.widgets['type_id'].setModelColumn(
             models.malles_types.fieldIndex('denomination'))
         self.widgets['lieu_id'].setModel(models.lieux)
         self.widgets['lieu_id'].setModelColumn(
-            models.malles_types.fieldIndex('nom'))
+            models.lieux.fieldIndex('nom'))
         
-        self.mapper.setItemDelegate(QSqlRelationalDelegate(self))
+        self.mapper.setItemDelegate(MalleDelegate(self))
         
         for i, k in enumerate(self.widgets):
             logging.debug(str(self.widgets[k]) + ' ' + str(i))
@@ -603,7 +619,10 @@ class MalleForm(MappedQDialog):
         form_layout_left = QFormLayout()
         form_layout_left.addRow('Référence', self.widgets['reference'])
         form_layout_left.addRow('Type', self.widgets['type_id'])
-        form_layout_left.addRow('Lieu', self.widgets['lieu_id'])
+        lieu_layout = QHBoxLayout()
+        lieu_layout.addWidget(self.widgets['lieu_id'])
+        lieu_layout.addWidget(add_lieu_button)
+        form_layout_left.addRow('Lieu', lieu_layout)
         form_layout_right = QFormLayout()
         form_layout_right.addRow('Allée', self.widgets['section'])
         form_layout_right.addRow('Étagère', self.widgets['shelf'])
@@ -614,6 +633,8 @@ class MalleForm(MappedQDialog):
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout)
         self.setLayout(main_layout)
+
+        add_lieu_button.clicked.connect(self.add_lieu)
 
         if index:
             self.mapper.setCurrentIndex(index.row())
@@ -639,6 +660,17 @@ class MalleForm(MappedQDialog):
                 if error.nativeErrorCode() == '23505':
                     QMessageBox.warning(
                         self, "Erreur", "Cette référence existe déjà.")
+
+        else:
+            error = self.model.lastError()
+            logging.debug(error.text())
+
+    def add_lieu(self):
+        self.parent().add_lieu()
+
+        # below: To fix the just added lieu which doesn't want to be stored in the 
+        # model if the relationModel doesn't contains it...
+        self.model.relationModel(2).select()
 
 class MalleFormDialog(MalleForm):
     def __init__(self, parent, model, models, index=None):
@@ -1001,7 +1033,7 @@ class ContenuCheckerDialog(QDialog):
         self.model.setFilter("malle_ref = '" + reference + "'")
 
 class LieuForm(MappedQDialog):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, index=None):
         super().__init__(parent, model)
 
         self.widgets['nom'] = QLineEdit()
@@ -1013,14 +1045,28 @@ class LieuForm(MappedQDialog):
         self.widgets['cp'].setValidator(CPValidator) 
         self.widgets['numero'].setValidator(QIntValidator()) 
 
-        self.init_add_dialog()
+        self.init_mapping()
+        self.auto_layout()
+        self.auto_default_buttons()
+        
+        if index:
+            self.mapper.setCurrentIndex(index.row())
+        else:
+            self.add_row()
+        self.exec_()
        
     def submited(self):
-        submited = self.mapper.submit()
-        self.model.submitAll()
-        if submited:
+        mapper_submited = self.mapper.submit()
+        model_submited = self.model.submitAll()
+        if mapper_submited and model_submited:
             self.accept()
         else:
+            QMessageBox.warning(
+                self,
+                "Erreur",
+                "Les informations sembles incorrectes.\n"\
+                + "\ndétails de l'erreur:\n"\
+                + self.model.lastError().text())
             logging.warning(self.model.lastError().text())
 
 class ReservationForm(MappedQDialog):
@@ -1080,3 +1126,13 @@ class QSqlRelationalDelegateBehindProxy(QSqlRelationalDelegate):
         base_model = model.sourceModel()
         base_index = model.mapToSource(index)
         return super().setModelData(editor, base_model, base_index)
+
+class MalleDelegate(QItemDelegate):
+    """ Like QSqlRelationalDelegate behaviour """
+    def setModelData(self, editor, model, index):
+            if index.column() == 2 or index.column() == 1:
+                idx = editor.model().index(editor.currentIndex(), 0)
+                data = editor.model().data(idx)
+                res = model.setData(index, data, Qt.EditRole)
+            else:
+                super().setModelData(editor, model, index)
