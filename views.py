@@ -327,13 +327,17 @@ class ProductForm(MappedQDialog):
         fournisseur_layout.addWidget(add_fournisseur_button)
         self.layout.addRow('Fournisseur \npar défaut', fournisseur_layout)
 
-        add_fournisseur_button.clicked.connect(parent.add_fournisseur)
+        add_fournisseur_button.clicked.connect(self.add_fournisseur)
         self.auto_default_buttons()
         if index:
             self.mapper.setCurrentIndex(index.row())
         else:
             self.add_row()
         self.exec_()
+
+    def add_fournisseur(self):
+        self.parent().add_fournisseur()
+        self.model.relationModel(2).select()
 
     def submited(self):
         submited = self.mapper.submit()
