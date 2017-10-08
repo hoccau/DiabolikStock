@@ -227,7 +227,13 @@ class MappedQDialog(QDialog):
 
     def init_mapping(self):
         for field, widget in self.widgets.items():
-            self.mapper.addMapping(widget, self.model.fieldIndex(field))
+            if type(widget) == QTextEdit: # because it needs specific property
+                self.mapper.addMapping(
+                    widget,
+                    self.model.fieldIndex(field),
+                    QByteArray(b'plainText')) 
+            else:
+                self.mapper.addMapping(widget, self.model.fieldIndex(field))
             if self.mapper.mappedSection(widget) == -1:
                 logging.warning('Widget '+field+' not mapped.')
         
@@ -605,6 +611,7 @@ class MalleForm(MappedQDialog):
         self.widgets['section'] = QLineEdit()
         self.widgets['shelf'] = QLineEdit()
         self.widgets['slot'] = QLineEdit()
+        self.widgets['observation'] = QTextEdit()
         add_lieu_button = QPushButton('+')
 
         self.widgets['type_id'].setModel(models.malles_types)
@@ -618,7 +625,13 @@ class MalleForm(MappedQDialog):
         
         for i, k in enumerate(self.widgets):
             logging.debug(str(self.widgets[k]) + ' ' + str(i))
-            self.mapper.addMapping(self.widgets[k], i) 
+            if type(self.widgets[k]) == QTextEdit: # needs plainText property
+                self.mapper.addMapping(
+                    self.widgets[k],
+                    i,
+                    QByteArray(b'plainText'))
+            else:
+                self.mapper.addMapping(self.widgets[k], i) 
         
         form_layout_left = QFormLayout()
         form_layout_left.addRow('Référence', self.widgets['reference'])
@@ -636,6 +649,8 @@ class MalleForm(MappedQDialog):
         layout.addLayout(form_layout_right)
         main_layout = QVBoxLayout()
         main_layout.addLayout(layout)
+        main_layout.addWidget(self.widgets['observation'])
+        self.widgets['observation'].setPlaceholderText('Observation')
         self.setLayout(main_layout)
 
         add_lieu_button.clicked.connect(self.add_lieu)
@@ -846,11 +861,6 @@ class AddMalleType(MappedQDialog):
         self.widgets['observation'] = QTextEdit()
         self.widgets['denomination'].setPlaceholderText('ex: Pédagogique')
         self.init_mapping()
-
-        self.mapper.addMapping(
-            self.widgets['observation'],
-            self.model.fieldIndex('observation'),
-            QByteArray(b'plainText')) #because default is tohtml
 
         self.auto_layout()
 
