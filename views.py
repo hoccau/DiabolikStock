@@ -56,8 +56,12 @@ class DisplayTableViewDialog(QDialog):
         self.model = model
         self.parent = parent
         self.view = QTableView(self)
-        self.view.setModel(model)
+        self.proxy = QSortFilterProxyModel()
+        self.proxy.setSourceModel(model)
+        self.view.setModel(self.proxy)
+        self.view.setSortingEnabled(True)
         self.view.setItemDelegate(QSqlRelationalDelegate())
+
 
         close_button = QPushButton('Fermer')
 
@@ -109,7 +113,7 @@ class MallesArrayDialog(RowEditDialog):
         self.model.select()
 
     def edit_row(self, index):
-        idx = self.model.index(index.row(), 0)
+        idx = self.proxy.mapToSource(index)
         MalleFormWithContenu(
             self.parent, 
             self.parent.models.malles,
@@ -135,7 +139,7 @@ class LieuxArrayDialog(RowEditDialog):
         self.parent = parent
 
     def edit_row(self, index):
-        idx = self.model.index(index.row(), 0)
+        idx = self.proxy.mapToSource(index)
         LieuForm(None, self.parent.models.lieux, idx) 
 
     def add_row(self):
@@ -152,8 +156,9 @@ class MallesTypesDialog(RowEditDialog):
         self.model.select()
 
     def edit_row(self, index):
-        type_id = self.model.data(self.model.index(index.row(), 0))
-        denomination = self.model.data(self.model.index(index.row(), 1))
+        idx = self.proxy.mapToSource(index)
+        type_id = idx.model().data(idx.model().index(idx.row(), 0))
+        denomination = self.model.data(self.model.index(idx.row(), 1))
         ContenuType(self, self.parent.models.contenu_type, type_id, denomination)
 
     def remove_row(self):
@@ -181,8 +186,7 @@ class ProduitsArrayDialog(RowEditDialog):
         self.model.select()
 
     def edit_row(self, index):
-        idx = index.model().index(index.row(), 0)
-        logging.debug("index: " + str(index.row()) + " id: " + str(idx))
+        idx = self.proxy.mapToSource(index)
         ProductForm(
             self.parent,
             self.parent.models.produits,
@@ -704,7 +708,9 @@ class MalleFormDialog(MalleForm):
 class MalleFormWithContenu(MalleForm):
     def __init__(self, parent, model, models, index=None):
         super().__init__(parent, model, models, index)
-        malle_ref = index.data()
+        logging.debug(index.row())
+        malle_ref = model.data(model.index(index.row(), 0))
+        logging.debug(malle_ref)
         self.contenu_malle = ContenuMalle(
             parent, 
             models.contenu_malles, 
@@ -762,7 +768,6 @@ class ContenuMalle(QWidget):
         self.add_button.clicked.connect(self.add_row)
         self.remove_button.clicked.connect(self.remove_row)
         self.import_type_button.clicked.connect(self.import_type)
-
 
     def submit_row(self):
         submited = self.model.submitAll()
