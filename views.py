@@ -94,7 +94,7 @@ class RowEditDialog(DisplayTableViewDialog):
     def remove_row(self):
         select = self.view.selectionModel()
         row = select.currentIndex().row()
-        removed = self.model.removeRow(row)
+        removed = self.proxy.removeRow(row)
         if removed:
             logging.debug(
                 "removed row in " + str(self.model) + " : " + str(row))
@@ -171,7 +171,16 @@ class MallesTypesDialog(RowEditDialog):
             QMessageBox.No)
         if reply == QMessageBox.No:
             return False
-        super().remove_row()
+        
+        # I don't use inherited method because the proxy seems to fail calling
+        # overrided removeRow() model's method...
+        select = self.view.selectionModel()
+        row = self.proxy.mapToSource(select.currentIndex()).row()
+        removed = self.model.removeRow(row)
+        if not removed:
+            error = self.model.lastError()
+            logging.warning(error.text())
+            QMessageBox.warning(self, "Erreur", error.text())
 
 class ProduitsArrayDialog(RowEditDialog):
     def __init__(self, parent, model):

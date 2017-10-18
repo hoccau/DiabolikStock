@@ -118,8 +118,11 @@ class MallesTypesWithMalles(QSqlQueryModel):
         if res:
             logging.info("Malle type id: " + str(id_) + " deleted.")
             self.select()
+            return True
         else:
-            logging.warning(query.lastError().text())
+            error = query.lastError()
+            self.setLastError(error)
+            return False
 
 class ContenuType(QSqlRelationalTableModel):
     def __init__(self, parent, db):
