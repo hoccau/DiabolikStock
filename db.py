@@ -120,6 +120,33 @@ class Query(QSqlQueryModel):
             list_.append(self.query.value(0))
         return list_
 
+    ### Specific requests ###
+
+    def get_malles_by_type(self, type_):
+        req = "SELECT reference, malles.observation "\
+        + "FROM malles "\
+        + "INNER JOIN malles_types ON malles_types.id = malles.type_id "\
+        + "WHERE malles_types.denomination = '" + type_ + "';"
+        self.exec_(req)
+        return self._query_to_list()
+
+    def get_contenu_type(self, type_):
+        self.exec_("SELECT produits.nom, contenu_type.quantity, fournisseurs.nom "\
+        + "FROM contenu_type "\
+        + "INNER JOIN malles_types ON malles_types.id = contenu_type.type_id "\
+        + "INNER JOIN produits ON produits.id = contenu_type.produit_id "\
+        + "INNER JOIN fournisseurs ON fournisseurs.id = produits.fournisseur_id "\
+        + "WHERE malles_types.denomination = '" + type_ + "';")
+        return self._query_to_lists(3)
+
+    def get_contenu_by_malle(self, malle_ref):
+        self.exec_("SELECT nom, reel, attendu, difference, etat "\
+        + "FROM contenu_check "\
+        + "WHERE malle_ref = '" + malle_ref + "';")
+        return self._query_to_lists(5)
+
+    #def get_products_ordered_by_malle
+
 if __name__ == '__main__':
     
     stdout_handler = logging.StreamHandler(sys.stdout)
