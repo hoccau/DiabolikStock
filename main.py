@@ -42,6 +42,8 @@ class MainWindow(QMainWindow):
         self.db_actions = {
             'export_commandes': self._add_action('&Commandes', self.export_commandes),
             'export_checker': self._add_action('&Malle', self.export_checker),
+            'export_xlsx_malles': self._add_action(
+                '&Type', self.export_xlsx_malles),
             'add_fournisseur': self._add_action(
                 '&Fournisseur', self.add_fournisseur),
             'add_produit': self._add_action('&Produit', self.add_product),
@@ -65,9 +67,11 @@ class MainWindow(QMainWindow):
 
         fileMenu = menubar.addMenu('&Fichier')
         fileMenu.addAction(connectAction)
-        export_menu = fileMenu.addMenu('&Exporter en PDF')
-        export_menu.addAction(self.db_actions['export_commandes'])
-        export_menu.addAction(self.db_actions['export_checker'])
+        export_pdf_menu = fileMenu.addMenu('&Exporter en PDF')
+        export_pdf_menu.addAction(self.db_actions['export_commandes'])
+        export_pdf_menu.addAction(self.db_actions['export_checker'])
+        export_xlsx_menu = fileMenu.addMenu('&Exporter en Excel')
+        export_xlsx_menu.addAction(self.db_actions['export_xlsx_malles'])
         fileMenu.addAction(exitAction)
         edit_menu = menubar.addMenu('&Édition')
         view_menu = menubar.addMenu('&Vue')
@@ -181,6 +185,14 @@ class MainWindow(QMainWindow):
                 filename += '.pdf'
         return filename
 
+    def get_xlsx_filename(self):
+        filename, _format = QFileDialog.getSaveFileName(
+            self, "Exporter au format XLSX", None, 'XLSX(*.xlsx)')
+        if filename:
+            if filename[-5:] != '.xlsx':
+                filename += '.xlsx'
+        return filename
+
     def export_commandes(self):
         from export import commandes
         filename = self.get_pdf_filename()
@@ -198,6 +210,13 @@ class MainWindow(QMainWindow):
         from export.utils import pdf_export
         filename = self.get_pdf_filename()
         pdf_export(doc[1], filename) 
+
+    def export_xlsx_malles(self):
+        from export import xlsx_malle
+        type_, ok = QInputDialog.getText(self, '', 'Entrez le type')
+        if ok:
+            filename = self.get_xlsx_filename()
+            xlsx_malle.write_file(self.db, type_, filename)
 
 if __name__ == '__main__':
     import sys, os

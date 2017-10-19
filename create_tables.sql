@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS contenu_malles(
 	produit_id integer NOT NULL,
     quantity integer NOT NULL DEFAULT 0,
     etat_id integer,
+    observation varchar(255),
 	UNIQUE (produit_id, malle_ref),
 	FOREIGN KEY (produit_id) REFERENCES produits(id),
 	FOREIGN KEY (malle_ref) REFERENCES malles(reference) ON DELETE CASCADE,
