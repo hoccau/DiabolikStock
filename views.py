@@ -735,10 +735,6 @@ class MalleFormWithContenu(MalleForm):
         
         self.exec_()
 
-    def submited(self):
-        self.contenu_malle.submit_row()
-        super().submited()
-
 class ContenuMalle(QWidget):
     def __init__(self, parent, model, db, malle_ref=None):
         super(ContenuMalle, self).__init__(parent)
@@ -754,49 +750,18 @@ class ContenuMalle(QWidget):
 
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
-        self.products_table.setItemDelegate(QSqlRelationalDelegate())
-        completer_delegate = ComboBoxCompleterDelegate(self)
-        self.products_table.setItemDelegateForColumn(2, completer_delegate)
+        self.products_table.setItemDelegateForColumn(5, EtatDelegate()) 
         self.products_table.setColumnHidden(0, True)
         self.products_table.setColumnHidden(1, True)
 
-        self.import_type_button = QPushButton('importer la malle type')
-        self.add_button = QPushButton('+')
-        self.remove_button = QPushButton('-')
-        
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.import_type_button)
         self.layout.addWidget(self.title_label)
         self.layout.addWidget(self.products_table)
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.add_button)
-        buttons_layout.addWidget(self.remove_button)
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
-        
-        self.add_button.clicked.connect(self.add_row)
-        self.remove_button.clicked.connect(self.remove_row)
-        self.import_type_button.clicked.connect(self.import_type)
-
-    def submit_row(self):
-        submited = self.model.submitAll()
-        if not submited:
-            error = self.model.lastError()
-            logging.warning(error.text())
-            logging.debug(self.model.query().lastQuery())
-            if error.nativeErrorCode() == '23505':
-                QMessageBox.warning(
-                    self, "Erreur", "Ce produit semble déjà exister pour cette malle")
-            elif error.nativeErrorCode() == '23502':
-                QMessageBox.warning(
-                    self, "Erreur", "Êtes-vous sûr(e) d'avoir entré un produit?")
-            return False
-        else:
-            return True
     
     def add_row(self, values=False):
-        if self.model.isDirty():
-            submited = self.submit_row()
         inserted = self.model.insertRow(self.model.rowCount())
         record = self.model.record()
         record.setValue('malle_ref', self.malle_ref)
@@ -816,25 +781,6 @@ class ContenuMalle(QWidget):
         row = select.currentIndex().row()
         self.model.removeRow(row)
         self.model.submitAll()
-
-    def import_type(self):
-        type_id = self.db.get_(
-            ['type_id'],
-            'malles',
-            "reference = '" + self.malle_ref + "'")[0]['type_id']
-        res = self.db.get_(
-            ['produit_id', 'quantity'],
-            'contenu_type',
-            "type_id = " + str(type_id))
-        for row in res:
-            self.add_row(values = row)
-
-    def terminated(self):
-        if self.model.isDirty():
-            submited = self.submit_row()
-            if not submited:
-                return False
-        self.close()
 
 class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
     def __init__(self, parent=None, relation_model=2):
@@ -864,7 +810,7 @@ class ContenuMalleDialog(QDialog):
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
         
-        self.finish_button.clicked.connect(self.terminated)
+        self.finish_button.clicked.connect(self.close)
     
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
@@ -956,8 +902,8 @@ class ContenuType(QDialog):
             return True
     
     def add_row(self):
-        if self.model.isDirty():
-            submited = self.submit_row()
+        #if self.model.isDirty():
+        #    submited = self.submit_row()
         inserted = self.model.insertRow(self.model.rowCount())
         record = self.model.record()
         record.setGenerated('id', False)
@@ -968,12 +914,17 @@ class ContenuType(QDialog):
                 'Row not inserted in model {0}'.format(self.model))
     
     def remove_row(self):
+        reply = QMessageBox.question(
+            None, 'Sûr(e) ?', "Détruire un produit dans un type détruit "\
+            + "également tous les produits contenus dans les malles de ce type. "\
+            + "Êtes-vous sûr(e) ?", 
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
         select = self.products_table.selectionModel()
         row = select.currentIndex().row()
-        logging.debug(row)
         removed = self.model.removeRow(row)
-        logging.debug(removed)
-        logging.debug(self.model)
         submited = self.model.submitAll()
         if not submited:
             logging.warning(self.model.lastError().text())
@@ -1034,31 +985,6 @@ class SejourForm(MappedQDialog):
             self.model.select()
             logging.info('Sejour added.')
             self.accept()
-
-class ContenuCheckerDialog(QDialog):
-    def __init__(self, parent, models):
-        super().__init__()
-
-        self.models = models
-        filter_combobox = QComboBox()
-        filter_combobox.setModel(models.malles)
-        self.model = models.contenu_checker
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        etat_delegate = EtatDelegate(self)
-        self.view.setItemDelegateForColumn(5, etat_delegate)
-        self.layout = QVBoxLayout(self)
-        self.layout.addWidget(filter_combobox)
-        self.layout.addWidget(self.view)
-
-        self.setMinimumSize(550, 500)
-
-        filter_combobox.currentTextChanged.connect(self.set_filter)
-        self.set_filter(filter_combobox.currentText())
-
-    def set_filter(self, reference):
-        logging.debug('reference:'+str(reference))
-        self.model.setFilter("malle_ref = '" + reference + "'")
 
 class LieuForm(MappedQDialog):
     def __init__(self, parent, model, index=None):

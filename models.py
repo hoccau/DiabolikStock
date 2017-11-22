@@ -18,7 +18,7 @@ class Models():
         self.produits = Produits(None, self.db)
         self.malles_types = MallesTypes(None, self.db)
         self.malles = Malles(None, self.db)
-        self.contenu_malles = ContenuMalles(None, self.db) 
+        self.contenu_malles = ContenuMalles()
         self.inputs = Inputs(None, self.db)
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
@@ -28,7 +28,6 @@ class Models():
         self.lieux.select()
         self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.sejours_malles_types = SejoursMallesTypes(None, self.db)
-        self.contenu_checker = ContenuChecker()
         self.reservations = Reservations(None, self.db)
 
 class Fournisseurs(QSqlTableModel):
@@ -76,14 +75,62 @@ class Malles(QSqlRelationalTableModel):
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
-class ContenuMalles(QSqlRelationalTableModel):
-    def __init__(self, parent, db):
-        super(ContenuMalles, self).__init__(parent, db)
+class ContenuMalles(QSqlQueryModel):
+    def __init__(self):
+        super().__init__()
+        self.filter = None
+        self.etats_model = QSqlTableModel()
+        self.etats_model.setTable('etats')
+        self.etats_model.select()
 
-        self.setTable('contenu_malles')
-        self.setRelation(2, QSqlRelation('produits', 'id', 'nom'))
-        self.setRelation(4, QSqlRelation('etats', 'id', 'etat'))
-        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
+    def select(self):
+        query = "SELECT contenu_malles.id, "\
+        + "malle_ref, "\
+        + "produits.nom, "\
+        + "contenu_type.quantity AS qté_prévue, "\
+        + "contenu_malles.quantity AS qté_réelle, "\
+        + "etats.etat, "\
+        + "contenu_malles.observation "\
+        + "FROM contenu_malles "\
+        + "INNER JOIN contenu_type ON contenu_type.id = contenu_type_id "\
+        + "INNER JOIN produits ON produits.id = contenu_type.produit_id "\
+        + "INNER JOIN etats ON etats.id = contenu_malles.etat_id"
+        if self.filter:
+            query += " WHERE " + self.filter
+        query += " ORDER BY contenu_malles.id"
+        self.setQuery(query)
+        if self.lastError().text().rstrip():
+            logging.warning(self.lastError().text())
+
+    def setFilter(self, filter_):
+        self.filter = filter_
+        self.select()
+    
+    def setData(self, index, value, role):
+        id_ = index.model().data(index.sibling(index.row(), 0))
+        if index.column() == 4:
+            self.update_data("quantity", value, id_)
+        elif index.column() == 5:
+            self.update_data("etat_id", value, id_)
+        elif index.column() == 6:
+            self.update_data("observation", value, id_)
+        self.select()
+        return True
+
+    def flags(self, index):
+        flags = super().flags(index)
+        if index.column() in (4, 5, 6):
+            flags |= Qt.ItemIsEditable
+        return flags
+
+    def update_data(self, field, value, id_):
+        query = QSqlQuery()
+        query.prepare("UPDATE contenu_malles "\
+        + "SET " + field + " = :val "\
+        + "WHERE contenu_malles.id = :id_")
+        query.bindValue(':val', value)
+        query.bindValue(':id_', id_)
+        query.exec_()
         self.select()
 
 class MallesTypes(QSqlTableModel):
@@ -173,56 +220,3 @@ class Reservations(QSqlRelationalTableModel):
         self.setTable('reservations')
         rel = QSqlRelation('sejours', 'id', 'nom')
         self.setRelation(1, rel)
-
-class ContenuChecker(QSqlQueryModel):
-    def __init__(self):
-        super().__init__()
-        self.main_query = "SELECT id, nom, reel, attendu, "\
-        + "difference, etat "\
-        + "FROM contenu_check "
-        self.current_filter = 'malle_ref = NULL'
-        self.etats_model = QSqlTableModel()
-        self.etats_model.setTable('etats')
-        self.etats_model.select()
-
-    def select(self):
-        self.setQuery(self.main_query + " WHERE " + self.current_filter)
-
-    def setFilter(self, filter_):
-        self.current_filter = filter_
-        self.select()
-    
-    def setData(self, index, value, role):
-        logging.debug(index.column())
-        id_ = index.model().data(index.sibling(index.row(), 0))
-        if index.column() == 5:
-            self.set_etat(value, id_)
-        elif index.column() == 2:
-            self.set_nbr(value, id_)
-        self.select()
-        return value
-
-    def flags(self, index):
-        flags = super().flags(index)
-        if index.column() in (2, 5):
-            flags |= Qt.ItemIsEditable
-        return flags
-
-    def set_etat(self, etat_id, id_):
-        query = QSqlQuery()
-        query.prepare("UPDATE contenu_malles "\
-        + "SET etat_id = :etat_id "\
-        + "WHERE contenu_malles.id = :id_")
-        query.bindValue(':etat_id', etat_id)
-        query.bindValue(':id_', id_)
-        query.exec_()
-
-    def set_nbr(self, quantity, id_):
-        query = QSqlQuery()
-        query.prepare("UPDATE contenu_malles "\
-        + "SET quantity = :quantity "\
-        + "WHERE contenu_malles.id = :id_")
-        query.bindValue(':quantity', quantity)
-        query.bindValue(':id_', id_)
-        query.exec_()
-

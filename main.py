@@ -13,12 +13,12 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon
 from models import (
     Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, Produits,
-    ContenuChecker, Sejours)
+    Sejours)
 from db import Query
 from views import (
     MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm, 
     StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog, 
-    SejourForm, ContenuCheckerDialog, LieuForm, ReservationForm, 
+    SejourForm, LieuForm, ReservationForm, 
     ProduitsArrayDialog, InputsArray, LieuxArrayDialog)
 from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
@@ -59,8 +59,6 @@ class MainWindow(QMainWindow):
             'view_fournisseurs':self._add_action(
                 '&Fournisseurs', self.display_fournisseurs),
             'view_produits':self._add_action('&Produits', self.display_produits),
-            'contenu_checker':self._add_action(
-                '&Contenu des malles', self.contenu_checker),
             'view_sejours':self._add_action('&Séjours', self.display_sejours),
             'view_lieux':self._add_action('&lieux', self.display_lieux)
         }
@@ -79,7 +77,6 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.db_actions['view_malles_types'])
         view_menu.addAction(self.db_actions['view_fournisseurs'])
         view_menu.addAction(self.db_actions['view_produits'])
-        view_menu.addAction(self.db_actions['contenu_checker'])
         view_menu.addAction(self.db_actions['view_sejours'])
         view_menu.addAction(self.db_actions['view_lieux'])
         addMenu = menubar.addMenu('&Ajouter')
@@ -168,10 +165,6 @@ class MainWindow(QMainWindow):
 
     def display_lieux(self):
         dialog = LieuxArrayDialog(self, self.models.lieux)
-
-    def contenu_checker(self):
-        dialog = ContenuCheckerDialog(self, self.models)
-        dialog.exec_()
 
     def display_sejours(self):
         dialog = DisplayTableViewDialog(self, self.models.sejours)
