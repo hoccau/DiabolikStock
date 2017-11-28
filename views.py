@@ -6,15 +6,81 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget,
-    QAbstractItemDelegate, QItemDelegate)
+    QAbstractItemDelegate, QItemDelegate, QToolButton, QGroupBox)
 from PyQt5.QtCore import (
-    QDate, QByteArray, QSize, QModelIndex, Qt, QVariant, QSortFilterProxyModel)
-from validators import EmailValidator, PhoneValidator, CPValidator
+    QDate, QDateTime, QByteArray, QSize, QModelIndex, Qt, QVariant, 
+    QSortFilterProxyModel, QMessageAuthenticationCode, QSettings)
+from validators import EmailValidator, PhoneValidator, CPValidator, PortValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
 from collections import OrderedDict
 from utils import displayed_error
+import string
+import random
 import logging
+
+class UserConnect(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        user = QLineEdit()
+        password = QLineEdit()
+        layout = QFormLayout()
+        layout.addRow('utilisateur', user)
+        layout.addRow('mot de passe', password)
+
+        self.setLayout(layout)
+        self.exec_()
+
+class ConfigDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.settings = QSettings('Kidivid', 'DiabolikStock')
+        self.db_hostname = QLineEdit()
+        self.db_port = QLineEdit()
+        self.db_user = QLineEdit()
+        self.db_password = QLineEdit()
+        self.ok_button = QPushButton('OK')
+        self.cancel_button = QPushButton('Annuler')
+        self.db_port.setValidator(PortValidator)
+        self.db_password.setEchoMode(2) # stars replace chars
+
+        self.ok_button.clicked.connect(self.write_and_quit)
+        self.cancel_button.clicked.connect(self.close)
+
+        db_group = QGroupBox('Base de donnée')
+        db_layout = QFormLayout()
+        db_layout.addRow("Nom d'hôte", self.db_hostname)
+        db_layout.addRow("Port", self.db_port)
+        db_layout.addRow("Utilisateur", self.db_user)
+        db_layout.addRow("Mot de passe", self.db_password)
+        db_group.setLayout(db_layout)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(db_group)
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
+
+        self.read_settings()
+        self.exec_()
+
+    def read_settings(self):
+        """ read settings and populate widgets """
+        self.db_hostname.setText(self.settings.value('db/host'))
+        self.db_port.setText(self.settings.value('db/port'))
+        self.db_user.setText(self.settings.value('db/user'))
+        self.db_password.setText(self.settings.value('db/password'))
+        
+    def write_and_quit(self):
+        self.settings.setValue('db/host', self.db_hostname.text())
+        self.settings.setValue('db/port', int(self.db_port.text()))
+        self.settings.setValue('db/user', self.db_user.text())
+        self.settings.setValue('db/password', self.db_password.text())
+        self.accept()
 
 class StartupView(QWidget):
     def __init__(self, parent):
@@ -22,29 +88,27 @@ class StartupView(QWidget):
         
         self.grid = QGridLayout()
 
-        malle_button = self._create_button('caisse.png', 'Malles')
-        malle_type_button = self._create_button('caisse_type.png', 'Types')
-        fournisseur_button = self._create_button('fournisseur.png', 'Fournisseurs')
-        input_button = self._create_button('input.png', 'Entrée de Produit')
-        product_button = self._create_button('produit.png', 'Produits')
+        actions = parent.actions
+        malle_button = self._create_button(actions['view_malles'], 'caisse.png', 'Malles')
+        malle_type_button = self._create_button(actions['view_malles_types'], 'caisse_type.png', 'Types')
+        fournisseur_button = self._create_button(actions['view_fournisseurs'], 'fournisseur.png', 'Fournisseurs')
+        input_button = self._create_button(actions['add_input'], 'input.png', 'Entrée de Produit')
+        product_button = self._create_button(actions['view_produits'], 'produit.png', 'Produits')
+        users_button = self._create_button(actions['view_users'], 'user.png', 'Utilisateurs')
         
         self.grid.addWidget(malle_button, 0, 0)
         self.grid.addWidget(malle_type_button, 0, 1)
         self.grid.addWidget(fournisseur_button, 1, 0)
         self.grid.addWidget(input_button, 1, 1)
         self.grid.addWidget(product_button, 1, 2)
+        self.grid.addWidget(users_button, 0, 2)
 
         self.setLayout(self.grid)
 
-        malle_button.clicked.connect(parent.display_malles)
-        malle_type_button.clicked.connect(parent.display_malles_types)
-        input_button.clicked.connect(parent.display_inputs)
-        product_button.clicked.connect(parent.display_produits)
-        fournisseur_button.clicked.connect(parent.display_fournisseurs)
-
-    def _create_button(self, image, text):
-        button = QPushButton()
-        button.setIcon(QIcon('images/'+image))
+    def _create_button(self, action, image, text):
+        action.setIcon(QIcon('images/'+image))
+        button = QToolButton()
+        button.setDefaultAction(action)
         button.setIconSize(QSize(127, 100))
         button.setText(text)
         return button
@@ -61,7 +125,6 @@ class DisplayTableViewDialog(QDialog):
         self.view.setModel(self.proxy)
         self.view.setSortingEnabled(True)
         self.view.setItemDelegate(QSqlRelationalDelegate())
-
 
         close_button = QPushButton('Fermer')
 
@@ -101,6 +164,146 @@ class RowEditDialog(DisplayTableViewDialog):
             self.model.submitAll()
         if not removed:
             logging.debug(self.model.lastError().text())
+
+class MappedQDialog(QDialog):
+    """ Abstract class for inputs forms views """
+    def __init__(self, parent, model):
+        super(MappedQDialog, self).__init__(parent)
+
+        self.model = model
+        self.widgets = OrderedDict()
+        self.mapper = QDataWidgetMapper(self)
+        self.mapper.setModel(self.model)
+        
+    def init_add_dialog(self):
+        self.init_mapping()
+        self.auto_layout()
+        self.auto_default_buttons()
+        self.add_row()
+        self.exec_()
+        
+    def add_row(self):
+        inserted = self.model.insertRow(self.model.rowCount())
+        if not inserted:
+            logging.warning(
+                'Row not inserted in model {0}'.format(self.model))
+        self.mapper.toLast()
+
+    def init_mapping(self):
+        for field, widget in self.widgets.items():
+            if type(widget) == QTextEdit: # because it needs specific property
+                self.mapper.addMapping(
+                    widget,
+                    self.model.fieldIndex(field),
+                    QByteArray(b'plainText')) 
+            else:
+                self.mapper.addMapping(widget, self.model.fieldIndex(field))
+            if self.mapper.mappedSection(widget) == -1:
+                logging.warning('Widget '+field+' not mapped.')
+        
+    def auto_layout(self):
+        self.layout = QFormLayout(self)
+        for k, v in self.widgets.items():
+            self.layout.addRow(k, v)
+        
+    def auto_default_buttons(self):
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            self)
+        buttons.accepted.connect(self.submited)
+        buttons.rejected.connect(self.undo)
+        self.layout.addRow(buttons)
+    
+    def undo(self):
+        self.model.revertAll()
+        self.reject()
+
+class UsersArrayDialog(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+
+        self.view.setColumnHidden(0, True) #id
+        self.view.setColumnHidden(3, True) #password salt
+        self.view.setColumnHidden(4, True) #password hash
+
+    def edit_row(self, index):
+        idx = self.proxy.mapToSource(index)
+        UserDialog(self.parent, self.model, idx) 
+    
+    def add_row(self):
+        dialog = UserDialog(self.parent, self.model)
+
+    def remove_row(self):
+        reply = QMessageBox.question(
+            None, 'Sûr(e) ?', "Vous allez détruire définitivement cet "\
+            + "utilisateur. Êtes-vous sûr(e) ?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
+        super().remove_row()
+        self.model.submitAll()
+
+class UserDialog(QDialog):
+    def __init__(self, parent, model, index=None):
+        super().__init__(parent)
+
+        self.model = model
+
+        name = QLineEdit()
+        email = QLineEdit()
+        self.password = QLineEdit()
+        self.password_repeat = QLineEdit()
+        acl_group = QComboBox()
+        acl_group.addItems(['admin', 'utilisateur', 'visiteur'])
+
+        email.setValidator(EmailValidator)
+        self.password.setEchoMode(2) # stars replace chars
+        self.password_repeat.setEchoMode(2) # stars replace chars
+
+        self.mapper = QDataWidgetMapper(self)
+        self.mapper.setModel(model)
+        self.mapper.addMapping(name, 1)
+        self.mapper.addMapping(email, 2)
+        self.mapper.addMapping(acl_group, 5, QByteArray(b'currentIndex'))
+        
+        self.layout = QFormLayout(self)
+        self.layout.addRow('Nom', name)
+        self.layout.addRow('Email', email)
+        self.layout.addRow('Mot de passe', self.password)
+        self.layout.addRow('Vérification', self.password_repeat)
+        self.layout.addRow('Groupe', acl_group)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            self)
+        buttons.accepted.connect(self.submited)
+        buttons.rejected.connect(self.close)
+        self.layout.addRow(buttons)
+
+        if index:
+            self.mapper.setCurrentIndex(index.row())
+        else:
+            model.insertRow(model.rowCount())
+            self.mapper.toLast()
+
+        self.exec_()
+
+    def submited(self):
+        if self.password.text() != self.password_repeat.text():
+            QMessageBox.warning(self, 'Erreur', 'Les mots de passes ne sont '\
+            + 'pas identiques.')
+            return False
+        salt = ''.join(random.choice(string.ascii_letters) for _ in range(32))
+        logging.debug(salt)
+        code = QMessageAuthenticationCode(6, QByteArray(salt.encode()))
+        code.addData(QByteArray(self.password.text().encode()))
+        hash_ = str(code.result().toHex().data(), encoding='utf-8')
+        self.model.setData(self.model.index(self.model.rowCount() -1, 3), salt) 
+        self.model.setData(
+            self.model.index(self.model.rowCount() -1, 4), str(hash_))
+        mapper_submited = self.mapper.submit()
+        submited = self.model.submitAll()
+        self.accept()
 
 class MallesArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
@@ -214,58 +417,6 @@ class ProduitsArrayDialog(RowEditDialog):
                 None, "Patientez donc un peu...",
                 "Cette fonctionnalité n'est pas encore disponible")
 
-class MappedQDialog(QDialog):
-    """ Abstract class for inputs forms views """
-    def __init__(self, parent, model):
-        super(MappedQDialog, self).__init__(parent)
-
-        self.model = model
-        self.widgets = OrderedDict()
-        self.mapper = QDataWidgetMapper(self)
-        self.mapper.setModel(self.model)
-        
-    def init_add_dialog(self):
-        self.init_mapping()
-        self.auto_layout()
-        self.auto_default_buttons()
-        self.add_row()
-        self.exec_()
-        
-    def add_row(self):
-        inserted = self.model.insertRow(self.model.rowCount())
-        if not inserted:
-            logging.warning(
-                'Row not inserted in model {0}'.format(self.model))
-        self.mapper.toLast()
-
-    def init_mapping(self):
-        for field, widget in self.widgets.items():
-            if type(widget) == QTextEdit: # because it needs specific property
-                self.mapper.addMapping(
-                    widget,
-                    self.model.fieldIndex(field),
-                    QByteArray(b'plainText')) 
-            else:
-                self.mapper.addMapping(widget, self.model.fieldIndex(field))
-            if self.mapper.mappedSection(widget) == -1:
-                logging.warning('Widget '+field+' not mapped.')
-        
-    def auto_layout(self):
-        self.layout = QFormLayout(self)
-        for k, v in self.widgets.items():
-            self.layout.addRow(k, v)
-        
-    def auto_default_buttons(self):
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            self)
-        buttons.accepted.connect(self.submited)
-        buttons.rejected.connect(self.undo)
-        self.layout.addRow(buttons)
-    
-    def undo(self):
-        self.model.revertAll()
-        self.reject()
 
 class Fournisseur(MappedQDialog):
     def __init__(self, parent, model):
@@ -614,8 +765,9 @@ class MalleForm(MappedQDialog):
     def __init__(self, parent, model, models, index=None):
         super().__init__(parent, model)
 
-        self.contenu_malles_model = parent.models.contenu_malles
-        self.lieux_model = models.lieux
+        self.contenu_malles_model = models.contenu_malles
+        self.models = models
+        self.malle_log_model = models.malle_log
         self.db = parent.db
 
         self.widgets['reference'] = QLineEdit()
@@ -719,7 +871,7 @@ class MalleFormWithContenu(MalleForm):
         super().__init__(parent, model, models, index)
         logging.debug(index.row())
         malle_ref = model.data(model.index(index.row(), 0))
-        logging.debug(malle_ref)
+        logging.debug(parent)
         self.contenu_malle = ContenuMalle(
             parent, 
             models.contenu_malles, 
@@ -739,14 +891,16 @@ class ContenuMalle(QWidget):
     def __init__(self, parent, model, db, malle_ref=None):
         super(ContenuMalle, self).__init__(parent)
         
-        self.model = model
         self.parent = parent
+        self.model = model
+        self.malle_log_model = parent.models.malle_log
         self.db = db
         self.model.select()
         self.malle_ref = malle_ref
         self.model.setFilter("malle_ref = '"+str(malle_ref)+"'")
 
         self.title_label = QLabel("Contenu de la malle " + str(malle_ref))
+        self.malle_log_button = QPushButton("Journal d'entretien")
 
         self.products_table = QTableView()
         self.products_table.setModel(self.model)
@@ -758,8 +912,11 @@ class ContenuMalle(QWidget):
         self.layout.addWidget(self.title_label)
         self.layout.addWidget(self.products_table)
         buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.malle_log_button)
         self.layout.addLayout(buttons_layout)
         self.setLayout(self.layout)
+
+        self.malle_log_button.clicked.connect(self.open_malle_log)
     
     def add_row(self, values=False):
         inserted = self.model.insertRow(self.model.rowCount())
@@ -782,6 +939,46 @@ class ContenuMalle(QWidget):
         self.model.removeRow(row)
         self.model.submitAll()
 
+    def open_malle_log(self):
+        MalleLogArray(self, self.malle_log_model, self.malle_ref)
+
+class MalleLogArray(DisplayTableViewDialog):
+    def __init__(self, parent, model, malle_ref):
+        super().__init__(parent, model)
+
+        self.malle_ref = malle_ref
+
+        self.view.hideColumn(0) # hide id
+        #self.view.hideColumn(2) # hide malle_ref
+        model.setFilter("malle_ref = " + malle_ref)
+        
+        add_button = QPushButton('+')
+        remove_button = QPushButton('-')
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(remove_button)
+        self.layout().insertLayout(1, button_layout)
+
+        add_button.clicked.connect(self.add_row)
+        remove_button.clicked.connect(self.remove_row)
+        self.exec_()
+
+    def add_row(self):
+        inserted = self.proxy.insertRow(self.proxy.rowCount())
+        if inserted:
+            ref_inserted = self.model.setData(
+                self.model.index(self.model.rowCount() -1, 2),
+                self.malle_ref)
+            datetime_inserted = self.model.setData(
+                self.model.index(self.model.rowCount() -1, 3),
+                QDateTime.currentDateTime())
+
+    def remove_row(self):
+        selected = self.view.selectionModel()
+        row = selected.currentIndex().row()
+        self.proxy.removeRow(row)
+
 class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
     def __init__(self, parent=None, relation_model=2):
         super().__init__(parent)
@@ -799,19 +996,6 @@ class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
         if value:
             editor.setCurrentIndex(int(value))
 
-class ContenuMalleDialog(QDialog):
-    def __init__(self, parent):
-        super().__init__(parent)
-        
-        self.layout = QVBoxLayout()
-        self.finish_button = QPushButton('Terminé')
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.finish_button)
-        self.layout.addLayout(buttons_layout)
-        self.setLayout(self.layout)
-        
-        self.finish_button.clicked.connect(self.close)
-    
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
         super(AddMalleType, self).__init__(parent, model)

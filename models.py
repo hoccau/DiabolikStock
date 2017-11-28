@@ -19,6 +19,7 @@ class Models():
         self.malles_types = MallesTypes(None, self.db)
         self.malles = Malles(None, self.db)
         self.contenu_malles = ContenuMalles()
+        self.malle_log = MalleLog(None, self.db)
         self.inputs = Inputs(None, self.db)
         self.contenu_type = ContenuType(None, self.db)
         self.malles_types_with_malles = MallesTypesWithMalles()
@@ -29,6 +30,10 @@ class Models():
         self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.sejours_malles_types = SejoursMallesTypes(None, self.db)
         self.reservations = Reservations(None, self.db)
+        self.users = QSqlTableModel(None, self.db)
+        self.users.setTable('users')
+        self.users.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.users.select()
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -131,6 +136,16 @@ class ContenuMalles(QSqlQueryModel):
         query.bindValue(':val', value)
         query.bindValue(':id_', id_)
         query.exec_()
+        self.select()
+        
+class MalleLog(QSqlRelationalTableModel):
+    def __init__(self, parent, db):
+        super().__init__(parent, db)
+
+        self.setTable('malle_log')
+        self.setRelation(
+            1, QSqlRelation('users', 'id', 'name'))
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
 class MallesTypes(QSqlTableModel):

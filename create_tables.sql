@@ -136,6 +136,33 @@ CREATE TABLE IF NOT EXISTS sejours_malles_types_rel(
     PRIMARY KEY (sejour_id, malle_type_id)
 	);
 
+CREATE TABLE IF NOT EXISTS users(
+    id serial PRIMARY KEY,
+    name varchar(32) NOT NULL,
+    email varchar(32),
+    password_salt varchar(32) NOT NULL,
+    password_hash varchar(128) NOT NULL,
+    acl_group integer NOT NULL, -- 0:admin 1:user 3:read-only-user
+    UNIQUE(name)
+    );
+
+CREATE TABLE IF NOT EXISTS malle_log(
+    id serial PRIMARY KEY,
+    user_id integer,
+    malle_ref varchar(6),
+    date_check timestamp,
+    observation varchar(128),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (malle_ref) REFERENCES malles(reference)
+    );
+
+CREATE TABLE IF NOT EXISTS meta(
+    version integer,
+    creation_date date
+    );
+
+INSERT INTO meta(version, creation_date) VALUES(1, CURRENT_DATE);
+
 CREATE VIEW contenu_check AS
     SELECT produits.nom, 
     contenu_type.quantity as Qtt_p, 

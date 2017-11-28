@@ -16,3 +16,7 @@ PriceValidator = QRegExpValidator(QRegExp('\d[\d\,\.]+'))
 
 # Code postal
 CPValidator = QRegExpValidator(QRegExp('^(([0-8][0-9])|(9[0-5]))[0-9]{3}$'))
+
+# Internet Port
+PortValidator = QRegExpValidator(QRegExp(
+    '^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$'))
