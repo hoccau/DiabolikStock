@@ -142,9 +142,24 @@ CREATE TABLE IF NOT EXISTS users(
     email varchar(32),
     password_salt varchar(32) NOT NULL,
     password_hash varchar(128) NOT NULL,
-    acl_group integer NOT NULL, -- 0:admin 1:user 3:read-only-user
     UNIQUE(name)
     );
+
+CREATE TABLE IF NOT EXISTS groups(
+    id serial PRIMARY KEY,
+    name varchar(16) NOT NULL,
+    UNIQUE(name)
+    );
+
+CREATE TABLE IF NOT EXISTS users_groups_rel(
+    id serial PRIMARY KEY,
+    user_id integer REFERENCES users(id),
+    group_id_ integer REFERENCES groups(id),
+    UNIQUE(user_id, group_id_)
+    );
+
+INSERT INTO groups(name) VALUES('admin');
+INSERT INTO groups(name) VALUES('user');
 
 CREATE TABLE IF NOT EXISTS malle_log(
     id serial PRIMARY KEY,

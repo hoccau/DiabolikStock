@@ -7,6 +7,8 @@ Logiciel de gestion du matériel pour l'association Diabolo
 """
 
 from PyQt5 import QtSql
+from PyQt5.QtSql import QSqlRelationalDelegate
+from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import (
     QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog,
     QInputDialog)
@@ -20,7 +22,6 @@ from views import (
     StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog, 
     SejourForm, LieuForm, ReservationForm, UsersArrayDialog, ConfigDialog, 
     ProduitsArrayDialog, InputsArray, LieuxArrayDialog, UserConnect)
-from PyQt5.QtSql import QSqlRelationalDelegate
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class MainWindow(QMainWindow):
             'exit':CtrlAction(
                 QIcon(), '&Quitter', qApp.quit, 'Ctrl+Q', db_connected_required=False),
             'connect':CtrlAction(
-                QIcon(), '&Connection', self.connect_db, 'Ctrl+C', db_connected_required=False),
+                QIcon(), '&Connection', self.connect, 'Ctrl+C', db_connected_required=False),
             'export_commandes':CtrlAction(
                 QIcon(), '&Commandes', self.export_commandes),
             'export_checker': CtrlAction(
@@ -93,15 +94,23 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.actions['add_sejour'])
         addMenu.addAction(self.actions['add_reservation'])
 
-        self.statusBar().showMessage('')
         self.setMinimumSize(850, 300)
         self.show()
         
         self.models = False
+        self.settings = QSettings('Kidivid', 'DiabolikStock')
         self.db = Query(self)
-        self.connect_db()
-
+        connected = self.connect()
+        if connected:
+            logging.debug('connected')
+        
         self.setCentralWidget(StartupView(self))
+    
+    def set_rights(self, user, connected):
+        for _, action in self.actions.items():
+            if action.db_connected_required and connected:
+                if action.admin_required and admin:
+                    action.setEnabled(True)
 
     def _add_action(self, name, function_name, shortcut=None):
         action = CtrlAction(QIcon(), name, function_name)
@@ -113,19 +122,23 @@ class MainWindow(QMainWindow):
     def view_rapport(self):
         RapportDialog(self)
 
-    def connect_db(self):
-        connected = self.db.connect()
+    def connect(self):
+        connected = self.db.connect(self.settings)
         if connected:
             logging.info('connection à la base de donnée réussie')
             self.models = Models(self.db.db)
-            for _, action in self.actions.items():
-                if action.db_connected_required == 1:
-                    action.setEnabled(True)
-            return True
+            user, group = UserConnect(self, self.models.users).get_user()
+            if user:
+                self.statusBar().showMessage(user + ' connecté')
+                return True
         else:
             QMessageBox.warning(self, "Erreur", "La connection à\
             la base de données a échouée.")
-            return False
+            ok = ConfigDialog(self, self.settings).result()
+            if ok:
+                self.connect()
+            else:
+                return False
 
     def set_infos(self):
         InfosCentreDialog(self)

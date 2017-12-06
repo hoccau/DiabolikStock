@@ -4,7 +4,6 @@
 from PyQt5.QtSql import (
     QSqlQueryModel, QSqlDatabase, QSqlQuery, QSqlRelationalTableModel,
     QSqlRelation, QSqlTableModel)
-from PyQt5.QtCore import Qt, qDebug, qWarning
 import logging
 
 DEBUG_SQL = True
@@ -15,11 +14,11 @@ class Query(QSqlQueryModel):
 
         self.db = QSqlDatabase.addDatabase('QPSQL')
 
-    def connect(self):
-        self.db.setHostName("localhost")
-        self.db.setDatabaseName("testdiabostock")
-        self.db.setUserName("hoccau")
-        self.db.setPassword('password')
+    def connect(self, settings):
+        self.db.setHostName(settings.value('db/host'))
+        self.db.setDatabaseName(settings.value('db/name'))
+        self.db.setUserName(settings.value('db/user'))
+        self.db.setPassword(settings.value('db/password'))
         ok = self.db.open()
         if ok:
             self.query = QSqlQuery()
@@ -144,8 +143,6 @@ class Query(QSqlQueryModel):
         + "FROM contenu_check "\
         + "WHERE malle_ref = '" + malle_ref + "';")
         return self._query_to_lists(5)
-
-    #def get_products_ordered_by_malle
 
 if __name__ == '__main__':
     

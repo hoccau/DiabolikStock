@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemDelegate, QItemDelegate, QToolButton, QGroupBox)
 from PyQt5.QtCore import (
     QDate, QDateTime, QByteArray, QSize, QModelIndex, Qt, QVariant, 
-    QSortFilterProxyModel, QMessageAuthenticationCode, QSettings)
+    QSortFilterProxyModel, QMessageAuthenticationCode)
 from validators import EmailValidator, PhoneValidator, CPValidator, PortValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -20,23 +20,67 @@ import random
 import logging
 
 class UserConnect(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, model):
         super().__init__(parent)
-        user = QLineEdit()
-        password = QLineEdit()
+        self.model = model
+        self.model.setFilter('')
+        if self.model.rowCount() == 0:
+            res = QMessageBox.question(
+                    self,
+                    'Aucun utilisateur',
+                    "Il n'y a aucun utilisateur dans la base de donnée. "\
+                    + "Faut-il en créer un ?")
+            if res:
+                UserDialog(
+                        self,
+                        parent.models.users,
+                        parent.models.users_groups_rel)
+        self.user = QLineEdit()
+        self.password = QLineEdit()
+        ok_button = QPushButton('OK')
+        cancel_button = QPushButton('Annuler')
         layout = QFormLayout()
-        layout.addRow('utilisateur', user)
-        layout.addRow('mot de passe', password)
+        layout.addRow('utilisateur', self.user)
+        layout.addRow('mot de passe', self.password)
+        layout.addWidget(ok_button)
+        layout.addWidget(cancel_button)
+        ok_button.clicked.connect(self.connect)
 
         self.setLayout(layout)
         self.exec_()
 
+    def get_user(self):
+        return self.user.text(), self.acl_group
+
+    def connect(self):
+        self.model.setFilter("name = '" + self.user.text() + "'")
+        if not self.model.rowCount():
+            QMessageBox.warning(
+                self,
+                'Erreur',
+                "L'utilisateur " + self.user.text() + " n'existe pas.")
+            return False
+        salt = self.model.data(self.model.index(0,3))
+        model_hash = self.model.data(self.model.index(0,4))
+        code = QMessageAuthenticationCode(6, QByteArray(salt.encode()))
+        code.addData(QByteArray(self.password.text().encode()))
+        given_hash = str(code.result().toHex().data(), encoding='utf-8')
+        if given_hash == model_hash:
+            logging.debug('authentication succed!')
+            self.acl_group = self.model.data(self.model.index(0, 5))
+            self.accept()
+        else:
+            logging.debug('wrong')
+            QMessageBox.warning(self, 'Erreur', "Mauvais mot de passe") 
+            return False 
+
 class ConfigDialog(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, settings):
         super().__init__(parent)
 
-        self.settings = QSettings('Kidivid', 'DiabolikStock')
+        self.settings = settings
         self.db_hostname = QLineEdit()
+        self.db_name = QLineEdit()
         self.db_port = QLineEdit()
         self.db_user = QLineEdit()
         self.db_password = QLineEdit()
@@ -51,6 +95,7 @@ class ConfigDialog(QDialog):
         db_group = QGroupBox('Base de donnée')
         db_layout = QFormLayout()
         db_layout.addRow("Nom d'hôte", self.db_hostname)
+        db_layout.addRow("Nom de la base", self.db_name)
         db_layout.addRow("Port", self.db_port)
         db_layout.addRow("Utilisateur", self.db_user)
         db_layout.addRow("Mot de passe", self.db_password)
@@ -71,12 +116,14 @@ class ConfigDialog(QDialog):
     def read_settings(self):
         """ read settings and populate widgets """
         self.db_hostname.setText(self.settings.value('db/host'))
+        self.db_name.setText(self.settings.value('db/name'))
         self.db_port.setText(self.settings.value('db/port'))
         self.db_user.setText(self.settings.value('db/user'))
         self.db_password.setText(self.settings.value('db/password'))
         
     def write_and_quit(self):
         self.settings.setValue('db/host', self.db_hostname.text())
+        self.settings.setValue('db/name', self.db_name.text())
         self.settings.setValue('db/port', int(self.db_port.text()))
         self.settings.setValue('db/user', self.db_user.text())
         self.settings.setValue('db/password', self.db_password.text())
@@ -219,19 +266,20 @@ class MappedQDialog(QDialog):
         self.reject()
 
 class UsersArrayDialog(RowEditDialog):
-    def __init__(self, parent, model):
-        super().__init__(parent, model)
+    def __init__(self, parent, users_model, users_groups_model):
+        super().__init__(parent, users_model)
 
+        self.users_groups_model = users_groups_model
         self.view.setColumnHidden(0, True) #id
         self.view.setColumnHidden(3, True) #password salt
         self.view.setColumnHidden(4, True) #password hash
 
     def edit_row(self, index):
         idx = self.proxy.mapToSource(index)
-        UserDialog(self.parent, self.model, idx) 
+        UserDialog(self.parent, self.model, self.users_groups_model, idx) 
     
     def add_row(self):
-        dialog = UserDialog(self.parent, self.model)
+        dialog = UserDialog(self.parent, self.model, users_groups_model)
 
     def remove_row(self):
         reply = QMessageBox.question(
@@ -245,34 +293,35 @@ class UsersArrayDialog(RowEditDialog):
         self.model.submitAll()
 
 class UserDialog(QDialog):
-    def __init__(self, parent, model, index=None):
+    def __init__(self, parent, users_model, users_groups_model, index=None):
         super().__init__(parent)
 
-        self.model = model
+        self.model = users_model
+        self.group_rel_model = users_groups_model
 
         name = QLineEdit()
         email = QLineEdit()
         self.password = QLineEdit()
         self.password_repeat = QLineEdit()
-        acl_group = QComboBox()
-        acl_group.addItems(['admin', 'utilisateur', 'visiteur'])
+        self.group = QComboBox()
+        self.group.addItems(['administrateur', 'utilisateur'])
 
         email.setValidator(EmailValidator)
         self.password.setEchoMode(2) # stars replace chars
         self.password_repeat.setEchoMode(2) # stars replace chars
 
         self.mapper = QDataWidgetMapper(self)
-        self.mapper.setModel(model)
+        self.mapper.setModel(self.model)
         self.mapper.addMapping(name, 1)
         self.mapper.addMapping(email, 2)
-        self.mapper.addMapping(acl_group, 5, QByteArray(b'currentIndex'))
+        #self.mapper.addMapping(self.group, 5, QByteArray(b'currentIndex'))
         
         self.layout = QFormLayout(self)
         self.layout.addRow('Nom', name)
         self.layout.addRow('Email', email)
         self.layout.addRow('Mot de passe', self.password)
         self.layout.addRow('Vérification', self.password_repeat)
-        self.layout.addRow('Groupe', acl_group)
+        self.layout.addRow('Groupe', self.group)
         buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
             self)
@@ -283,7 +332,7 @@ class UserDialog(QDialog):
         if index:
             self.mapper.setCurrentIndex(index.row())
         else:
-            model.insertRow(model.rowCount())
+            self.model.insertRow(self.model.rowCount())
             self.mapper.toLast()
 
         self.exec_()
@@ -294,7 +343,6 @@ class UserDialog(QDialog):
             + 'pas identiques.')
             return False
         salt = ''.join(random.choice(string.ascii_letters) for _ in range(32))
-        logging.debug(salt)
         code = QMessageAuthenticationCode(6, QByteArray(salt.encode()))
         code.addData(QByteArray(self.password.text().encode()))
         hash_ = str(code.result().toHex().data(), encoding='utf-8')
@@ -303,6 +351,11 @@ class UserDialog(QDialog):
             self.model.index(self.model.rowCount() -1, 4), str(hash_))
         mapper_submited = self.mapper.submit()
         submited = self.model.submitAll()
+        if submited:
+            user_id = self.model.data(
+                self.model.index(self.model.rowCount() -1, 0))
+            group_id = self.group.currentIndex() + 1
+            self.model.set_group(user_id, group_id)
         self.accept()
 
 class MallesArrayDialog(RowEditDialog):

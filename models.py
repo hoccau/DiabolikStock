@@ -3,7 +3,7 @@
 
 from PyQt5.QtSql import (
     QSqlQueryModel, QSqlRelationalTableModel, QSqlRelation, QSqlTableModel,
-    QSqlQuery)
+    QSqlQuery, QSqlRecord)
 from PyQt5.QtCore import Qt
 import logging
 
@@ -30,10 +30,10 @@ class Models():
         self.lieux.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.sejours_malles_types = SejoursMallesTypes(None, self.db)
         self.reservations = Reservations(None, self.db)
-        self.users = QSqlTableModel(None, self.db)
-        self.users.setTable('users')
-        self.users.setEditStrategy(QSqlTableModel.OnManualSubmit)
-        self.users.select()
+        self.users_groups_rel = QSqlTableModel(None, self.db)
+        self.users_groups_rel.setTable('users_groups_rel')
+        self.users_groups_rel.setEditStrategy(QSqlTableModel.OnFieldChange)
+        self.users = Users(None, self.db, self.users_groups_rel)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -235,3 +235,26 @@ class Reservations(QSqlRelationalTableModel):
         self.setTable('reservations')
         rel = QSqlRelation('sejours', 'id', 'nom')
         self.setRelation(1, rel)
+        
+class Users(QSqlTableModel):
+    def __init__(self, parent, db, users_groups_rel_model):
+        super().__init__(parent, db)
+
+        self.users_groups_rel_model = users_groups_rel_model
+        self.setTable('users')
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.select()
+
+    def set_group(self, user_id, group_id):
+        logging.debug(str(user_id) + ' ' + str(group_id))
+        model = self.users_groups_rel_model
+        inserted = model.insertRow(model.rowCount())
+        model.setData(model.index(model.rowCount() - 1, 1), user_id)
+        model.setData(model.index(model.rowCount() - 1, 2), group_id)
+        submited = model.submitAll()
+        logging.debug(submited)
+        if submited:
+            logging.info("group submited")
+        if not submited:
+            logging.debug(model.lastError().text())
+
