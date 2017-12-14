@@ -69,11 +69,6 @@ class Inputs(QSqlRelationalTableModel):
         self.setRelation(2, rel2)
         self.select()
 
-    def fill_stock(self, produit_id, quantity):
-        query = QSqlQuery(
-            "INSERT INTO contenu_malles(malle_ref, produit_id, quantity, etat_id) "
-            + "VALUES('VSTOCK', "+str(produit_id)+", "+str(quantity)+", 1)")
-
 class Malles(QSqlRelationalTableModel):
     def __init__(self, parent, db):
         super(Malles, self).__init__(parent, db)
@@ -202,23 +197,6 @@ class ContenuType(QSqlRelationalTableModel):
             2, QSqlRelation('produits', 'id', 'nom'))
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
-
-class ProduitsModel(QSqlQueryModel):
-    def __init__(self):
-        super(ProduitsModel, self).__init__()
-        self.select()
-    
-    def select(self):
-        self.setQuery(
-            """
-            SELECT produits.nom,
-            coalesce(sum(quantity), 0) AS quantité 
-            FROM produits
-            LEFT JOIN contenu_malles ON contenu_malles.produit_id = produits.id 
-            INNER JOIN fournisseurs 
-            ON fournisseurs.id = produits.fournisseur_id 
-            GROUP BY produits.nom
-            """)
 
 class Sejours(QSqlRelationalTableModel):
     def __init__(self, parent, db):

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget,
-    QAbstractItemDelegate, QItemDelegate, QToolButton, QGroupBox)
+    QAbstractItemDelegate, QItemDelegate, QToolButton, QGroupBox, QCheckBox)
 from PyQt5.QtCore import (
     QDate, QDateTime, QByteArray, QSize, QModelIndex, Qt, QVariant, 
     QSortFilterProxyModel, QMessageAuthenticationCode)
@@ -88,6 +88,7 @@ class ConfigDialog(QDialog):
         self.db_port = QLineEdit()
         self.db_user = QLineEdit()
         self.db_password = QLineEdit()
+        self.auto_stock = QCheckBox()
         self.ok_button = QPushButton('OK')
         self.cancel_button = QPushButton('Annuler')
         self.db_port.setValidator(PortValidator)
@@ -103,6 +104,7 @@ class ConfigDialog(QDialog):
         db_layout.addRow("Port", self.db_port)
         db_layout.addRow("Utilisateur", self.db_user)
         db_layout.addRow("Mot de passe", self.db_password)
+        db_layout.addRow("Stock automatique", self.auto_stock)
         db_group.setLayout(db_layout)
 
         button_layout = QHBoxLayout()
@@ -121,9 +123,14 @@ class ConfigDialog(QDialog):
         """ read settings and populate widgets """
         self.db_hostname.setText(self.settings.value('db/host'))
         self.db_name.setText(self.settings.value('db/name'))
-        self.db_port.setText(self.settings.value('db/port'))
+        self.db_port.setText(str(self.settings.value('db/port')))
         self.db_user.setText(self.settings.value('db/user'))
         self.db_password.setText(self.settings.value('db/password'))
+        if self.settings.value('autostock'):
+            if self.settings.value('autostock') == 'true':
+                self.auto_stock.setChecked(True)
+            if self.settings.value('autostock') == 'false':
+                self.auto_stock.setChecked(False)
         
     def write_and_quit(self):
         self.settings.setValue('db/host', self.db_hostname.text())
@@ -131,6 +138,8 @@ class ConfigDialog(QDialog):
         self.settings.setValue('db/port', int(self.db_port.text()))
         self.settings.setValue('db/user', self.db_user.text())
         self.settings.setValue('db/password', self.db_password.text())
+        self.settings.setValue('autostock', self.auto_stock.isChecked())
+        self.parent().set_autostock()
         self.accept()
 
 class StartupView(QWidget):
@@ -143,7 +152,7 @@ class StartupView(QWidget):
         malle_button = self._create_button(actions['view_malles'], 'caisse.png', 'Malles')
         malle_type_button = self._create_button(actions['view_malles_types'], 'caisse_type.png', 'Types')
         fournisseur_button = self._create_button(actions['view_fournisseurs'], 'fournisseur.png', 'Fournisseurs')
-        input_button = self._create_button(actions['add_input'], 'input.png', 'Entrée de Produit')
+        input_button = self._create_button(actions['view_inputs'], 'input.png', 'Entrée de Produit')
         product_button = self._create_button(actions['view_produits'], 'produit.png', 'Produits')
         users_button = self._create_button(actions['view_users'], 'user.png', 'Utilisateurs')
         
@@ -670,9 +679,8 @@ class AddInput(MappedQDialog):
     def submited(self):
         submited = self.mapper.submit()
         if submited:
-            self.model.select()
+            self.model.submitAll()
             logging.info("L'entrée a bien été enregistrée")
-            self.submit_vstock()
             self.accept()
         if not submited:
             db_error = self.model.lastError()
@@ -681,16 +689,6 @@ class AddInput(MappedQDialog):
             if db_error:
                 logging.warning(self.model.tableName()+' '+db_error.text())
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
-
-    def submit_vstock(self):
-        model = self.parentWidget().models.contenu_malles
-        combobox = self.widgets['produit_id']
-        row = combobox.currentIndex()
-        model_index = combobox.model().index(row, 0)
-        product_id = combobox.model().data(model_index)
-
-        quantity = self.widgets['quantity'].value()
-        self.model.fill_stock(product_id, quantity)
 
 class InputsArray(RowEditDialog):
     def __init__(self, parent, model):
@@ -847,7 +845,7 @@ class MalleForm(MappedQDialog):
         self.mapper.setItemDelegate(MalleDelegate(self))
         
         for i, k in enumerate(self.widgets):
-            logging.debug(str(self.widgets[k]) + ' ' + str(i))
+            #logging.debug(str(self.widgets[k]) + ' ' + str(i))
             if type(self.widgets[k]) == QTextEdit: # needs plainText property
                 self.mapper.addMapping(
                     self.widgets[k],

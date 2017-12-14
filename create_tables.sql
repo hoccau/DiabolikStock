@@ -50,9 +50,6 @@ CREATE TABLE IF NOT EXISTS malles(
     FOREIGN KEY (lieu_id) REFERENCES lieux(id)
 	);
 
-INSERT INTO malles(reference, observation) VALUES(
-    'VSTOCK', 'Malle virtuelle, contenant le stock disponible. Si un 
-    produit est entré, il est automatiquement ajouté à cette malle.');
 CREATE TABLE IF NOT EXISTS reservations_malles_rel(
 	reservation_id integer,
 	malle_ref varchar(6) REFERENCES malles(reference)
@@ -69,6 +66,7 @@ CREATE TABLE IF NOT EXISTS produits(
 	id serial PRIMARY KEY,
 	nom varchar(30) NOT NULL,
 	fournisseur_id integer REFERENCES fournisseurs(id),
+	stock_qty integer NOT NULL DEFAULT 0,
     UNIQUE(nom)
 	);
 CREATE TABLE IF NOT EXISTS produits_fournisseur_rel(
@@ -260,9 +258,37 @@ RETURNS TRIGGER AS $contenu_malle_delete$
     END;
 $contenu_malle_delete$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION update_stock_after_input() 
+RETURNS TRIGGER AS $update_stock_after_input$
+-- This function update product stock when an input is inserted
+    BEGIN
+        UPDATE produits SET stock_qty = stock_qty + NEW.quantity
+        WHERE NEW.produit_id = produits.id;
+        RETURN NEW;
+    END;
+$update_stock_after_input$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_stock_after_update_contenu_malles() 
+RETURNS TRIGGER AS $update_stock_after_update_contenu_malles$
+-- This function update product stock when contenu_malle grow
+    BEGIN
+        IF NEW.quantity > OLD.quantity THEN
+            UPDATE produits SET stock_qty = stock_qty - (NEW.quantity - OLD.quantity)
+            WHERE produits.id = (
+                SELECT produit_id FROM contenu_type 
+                WHERE id = NEW.contenu_type_id);
+        END IF;
+        RETURN NEW;
+    END;
+$update_stock_after_update_contenu_malles$ LANGUAGE plpgsql;
+
 CREATE TRIGGER contenu_malle_trig AFTER INSERT ON malles
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_init();
 CREATE TRIGGER update_type_trig AFTER INSERT ON contenu_type
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_update();
 CREATE TRIGGER delete_type_trig BEFORE DELETE ON contenu_type
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_delete();
+CREATE TRIGGER insert_input AFTER INSERT ON inputs
+    FOR EACH ROW EXECUTE PROCEDURE update_stock_after_input();
+CREATE TRIGGER update_stock_after_update_contenu AFTER UPDATE ON contenu_malles
+    FOR EACH ROW EXECUTE PROCEDURE update_stock_after_update_contenu_malles();

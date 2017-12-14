@@ -50,6 +50,13 @@ class MainWindow(QMainWindow):
                 'Ctrl+D',
                 db_connected_required=False,
                 admin_required=False),
+            'settings':CtrlAction(
+                QIcon(),
+                '&Configuration',
+                self.set_config,
+                '',
+                db_connected_required=False,
+                admin_required=False),
             'export_commandes':CtrlAction(
                 QIcon(), '&Commandes', self.export_commandes),
             'export_checker': CtrlAction(
@@ -72,6 +79,7 @@ class MainWindow(QMainWindow):
             'view_fournisseurs':CtrlAction(
                 QIcon(),'&Fournisseurs', self.display_fournisseurs),
             'view_produits':CtrlAction(QIcon(), '&Produits', self.display_produits),
+            'view_inputs':CtrlAction(QIcon(), '&Arrivages', self.display_inputs),
             'view_sejours':CtrlAction(QIcon(), '&Séjours', self.display_sejours),
             'view_lieux':CtrlAction(QIcon(), '&lieux', self.display_lieux),
             'view_users':CtrlAction(QIcon(), '&utilisateurs', self.display_users)
@@ -87,11 +95,13 @@ class MainWindow(QMainWindow):
         export_xlsx_menu.addAction(self.actions['export_xlsx_malles'])
         fileMenu.addAction(self.actions['exit'])
         edit_menu = menubar.addMenu('&Édition')
+        edit_menu.addAction(self.actions['settings'])
         view_menu = menubar.addMenu('&Vue')
         view_menu.addAction(self.actions['view_malles'])
         view_menu.addAction(self.actions['view_malles_types'])
         view_menu.addAction(self.actions['view_fournisseurs'])
         view_menu.addAction(self.actions['view_produits'])
+        view_menu.addAction(self.actions['view_inputs'])
         view_menu.addAction(self.actions['view_sejours'])
         view_menu.addAction(self.actions['view_lieux'])
         addMenu = menubar.addMenu('&Ajouter')
@@ -183,8 +193,8 @@ class MainWindow(QMainWindow):
             action.setEnabled(False)
         self.actions['quit'].setEnabled(True)
 
-    def set_infos(self):
-        InfosCentreDialog(self)
+    def set_config(self):
+        ConfigDialog(self, self.settings)
 
     def add_fournisseur(self):
         AddFournisseur(self, self.models.fournisseurs)
@@ -238,6 +248,10 @@ class MainWindow(QMainWindow):
     def display_users(self):
         dialog = UsersArrayDialog(self, self.models.users)
         dialog.exec_()
+
+    def set_autostock(self):
+        if self.connected_db:
+            self.db.enable_autostock(self.settings.value('autostock'))
 
     def get_pdf_filename(self):
         filename, _format = QFileDialog.getSaveFileName(

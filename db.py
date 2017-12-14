@@ -22,6 +22,10 @@ class Query(QSqlQueryModel):
         ok = self.db.open()
         if ok:
             self.query = QSqlQuery()
+            if settings.value('autostock') == 'false':
+                self.enable_autostock(False)
+            if settings.value('autostock') == 'true':
+                self.enable_autostock(True)
             return True
         else:
             logging.warning(self.db.lastError().databaseText())
@@ -143,6 +147,20 @@ class Query(QSqlQueryModel):
         + "FROM contenu_check "\
         + "WHERE malle_ref = '" + malle_ref + "';")
         return self._query_to_lists(5)
+
+    def enable_autostock(self, value):
+        logging.debug(value)
+        if value:
+            self.exec_("ALTER TABLE inputs ENABLE TRIGGER insert_input")
+            self.exec_("ALTER TABLE contenu_malles ENABLE TRIGGER "\
+            + " update_stock_after_update_contenu")
+            logging.info('autostock enabled')
+        else:
+            self.exec_("ALTER TABLE inputs DISABLE TRIGGER insert_input")
+            self.exec_("ALTER TABLE contenu_malles DISABLE TRIGGER "\
+            + " update_stock_after_update_contenu")
+            logging.info('autostock disabled')
+
 
 if __name__ == '__main__':
     
