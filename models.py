@@ -12,6 +12,7 @@ class Models():
     def __init__(self, db):
         self.db = db
         self.create_models()
+        self.create_connections()
     
     def create_models(self):
         self.fournisseurs = Fournisseurs(None, self.db)
@@ -36,6 +37,10 @@ class Models():
         #self.users_groups_rel.setEditStrategy(QSqlTableModel.OnFieldChange)
         self.users = Users(None, self.db, self.users_groups_rel)
         logging.info("Models created.")
+
+    def create_connections(self):
+        contenu_type_products = self.contenu_type.relationModel(2)
+        self.produits.dataChanged.connect(contenu_type_products.select)
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -99,7 +104,7 @@ class ContenuMalles(QSqlQueryModel):
         + "etats.etat, "\
         + "contenu_malles.observation "\
         + "FROM contenu_malles "\
-        + "INNER JOIN contenu_type ON contenu_type.id = contenu_type_id "\
+        + "LEFT JOIN contenu_type ON contenu_type.id = contenu_type_id "\
         + "INNER JOIN produits ON produits.id = contenu_type.produit_id "\
         + "INNER JOIN etats ON etats.id = contenu_malles.etat_id"
         if self.filter:
@@ -268,3 +273,9 @@ class Users(QSqlTableModel):
         groups = [model.data(model.index(i, 2)) for i in range(model.rowCount())]
         model.setFilter('')
         return groups
+
+    def get_id_by_name(self, name):
+        for i in range(self.rowCount()):
+            if self.index(i, 1).data() == name:
+                return self.index(i, 0).data()
+

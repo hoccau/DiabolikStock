@@ -181,7 +181,9 @@ class DisplayTableViewDialog(QDialog):
 
         layout = QVBoxLayout()
         layout.addWidget(self.view)
-        layout.addWidget(close_button)
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(close_button)
+        layout.addLayout(buttons_layout)
         self.setLayout(layout)
         self.setMinimumSize(500, 400)
 
@@ -1005,24 +1007,36 @@ class MalleLogArray(DisplayTableViewDialog):
         self.malle_ref = malle_ref
 
         self.view.hideColumn(0) # hide id
-        #self.view.hideColumn(2) # hide malle_ref
-        model.setFilter("malle_ref = " + malle_ref)
+        self.view.hideColumn(2) # hide malle_ref
+        
+        model.setFilter("malle_ref = '" + malle_ref + "'")
         
         add_button = QPushButton('+')
         remove_button = QPushButton('-')
+        ok_button = QPushButton('OK')
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(add_button)
         button_layout.addWidget(remove_button)
         self.layout().insertLayout(1, button_layout)
+        self.layout().children()[0].insertWidget(0, ok_button)
 
         add_button.clicked.connect(self.add_row)
         remove_button.clicked.connect(self.remove_row)
+        ok_button.clicked.connect(self.submit_and_quit)
         self.exec_()
 
     def add_row(self):
+        def retrieve_current_user_id():
+            user_model = self.parent.parent.models.users
+            current_user = self.parent.parent.connected_user[0]
+            return user_model.get_id_by_name(current_user)
+
         inserted = self.proxy.insertRow(self.proxy.rowCount())
         if inserted:
+            user_id_inserted = self.model.setData(
+                self.model.index(self.model.rowCount() -1, 1),
+                retrieve_current_user_id())
             ref_inserted = self.model.setData(
                 self.model.index(self.model.rowCount() -1, 2),
                 self.malle_ref)
@@ -1034,6 +1048,16 @@ class MalleLogArray(DisplayTableViewDialog):
         selected = self.view.selectionModel()
         row = selected.currentIndex().row()
         self.proxy.removeRow(row)
+
+    def submit_and_quit(self):
+        submited = self.model.submitAll()
+        if submited:
+            self.accept()
+        if not submited:
+            QMessageBox.warning(
+                self, "Erreur", self.model.lastError().text())
+            logging.warning(self.model.lastError().text())
+
 
 class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
     def __init__(self, parent=None, relation_model=2):
