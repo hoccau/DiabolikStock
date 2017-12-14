@@ -585,6 +585,9 @@ class ProductForm(MappedQDialog):
         add_fournisseur_button.clicked.connect(self.add_fournisseur)
         self.auto_default_buttons()
         if index:
+            self.widgets['stock_qty'] = QSpinBox()
+            self.mapper.addMapping(self.widgets['stock_qty'], 3)
+            self.layout.insertRow(2, 'Quantité', self.widgets['stock_qty'])
             self.mapper.setCurrentIndex(index.row())
         else:
             self.add_row()
