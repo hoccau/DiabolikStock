@@ -490,16 +490,17 @@ class ProduitsArrayDialog(RowEditDialog):
             index = idx)
         self.model.select()
 
-    def remove_row(self, index):
+    def remove_row(self):
         reply = QMessageBox.question(
             None, 'Que souhaitez-vous faire ? ', "Vous ne pouvez pas détruire "\
             + "un produit. Voulez-vous mettre sa quantité en stock à 0 ? ",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No)
         if reply == QMessageBox.Yes:
-            QMessageBox.information(
-                None, "Patientez donc un peu...",
-                "Cette fonctionnalité n'est pas encore disponible")
+            select = self.view.selectionModel()
+            row = select.currentIndex().row()
+            self.model.setData(self.model.index(row, 3), 0)
+            self.model.submitAll()
 
 class Fournisseur(MappedQDialog):
     def __init__(self, parent, model):
