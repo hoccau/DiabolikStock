@@ -42,7 +42,14 @@ class MainWindow(QMainWindow):
             'exit':CtrlAction(
                 QIcon(), '&Quitter', qApp.quit, 'Ctrl+Q', db_connected_required=False),
             'connect':CtrlAction(
-                QIcon(), '&Connection', self.connect, 'Ctrl+C', db_connected_required=False),
+                QIcon(), '&Connection', self.connect, 'Ctrl+C', admin_required=False),
+            'disconnect':CtrlAction(
+                QIcon(),
+                '&Déconnection',
+                self.disconnect_user,
+                'Ctrl+D',
+                db_connected_required=False,
+                admin_required=False),
             'export_commandes':CtrlAction(
                 QIcon(), '&Commandes', self.export_commandes),
             'export_checker': CtrlAction(
@@ -58,7 +65,8 @@ class MainWindow(QMainWindow):
             'add_malle': CtrlAction(QIcon(),'&Malle', self.add_malle),
             'add_sejour': CtrlAction(QIcon(),'&Séjour', self.add_sejour),
             'add_reservation': CtrlAction(QIcon(),'&Reservation', self.add_reservation),
-            'view_malles': CtrlAction(QIcon(), '&Malles', self.display_malles),
+            'view_malles': CtrlAction(
+                QIcon(), '&Malles', self.display_malles, admin_required=False),
             'view_malles_types':CtrlAction(
                 QIcon(),'&Types de malles', self.display_malles_types),
             'view_fournisseurs':CtrlAction(
@@ -71,6 +79,7 @@ class MainWindow(QMainWindow):
 
         fileMenu = menubar.addMenu('&Fichier')
         fileMenu.addAction(self.actions['connect'])
+        fileMenu.addAction(self.actions['disconnect'])
         export_pdf_menu = fileMenu.addMenu('&Exporter en PDF')
         export_pdf_menu.addAction(self.actions['export_commandes'])
         export_pdf_menu.addAction(self.actions['export_checker'])
@@ -100,17 +109,9 @@ class MainWindow(QMainWindow):
         self.models = False
         self.settings = QSettings('Kidivid', 'DiabolikStock')
         self.db = Query(self)
-        connected = self.connect()
-        if connected:
-            logging.debug('connected')
-        
+        self.connected_user = None
+        self.connect()
         self.setCentralWidget(StartupView(self))
-    
-    def set_rights(self, user, connected):
-        for _, action in self.actions.items():
-            if action.db_connected_required and connected:
-                if action.admin_required and admin:
-                    action.setEnabled(True)
 
     def _add_action(self, name, function_name, shortcut=None):
         action = CtrlAction(QIcon(), name, function_name)
@@ -123,22 +124,64 @@ class MainWindow(QMainWindow):
         RapportDialog(self)
 
     def connect(self):
-        connected = self.db.connect(self.settings)
+        connected = self.connect_db()
         if connected:
+            logging.info('connected to database')
+            self.connect_user()
+
+    def connect_db(self):
+        self.connected_db = self.db.connect(self.settings)
+        if self.connected_db:
             logging.info('connection à la base de donnée réussie')
             self.models = Models(self.db.db)
-            user, group = UserConnect(self, self.models.users).get_user()
-            if user:
-                self.statusBar().showMessage(user + ' connecté')
-                return True
+            return True
         else:
             QMessageBox.warning(self, "Erreur", "La connection à\
             la base de données a échouée.")
             ok = ConfigDialog(self, self.settings).result()
             if ok:
-                self.connect()
+                self.connect_db()
             else:
                 return False
+
+    def connect_user(self):
+        user, groups = UserConnect(self, self.models.users).get_user()
+        if user and groups:
+            self.connected_user = (user, groups)
+            self.statusBar().showMessage(user + ' connecté, group ' + str(groups))
+            logging.info(
+                'user:' + user + ' groups:' + str(groups) + ' connected')
+            self.activate_actions()
+            self.actions['disconnect'].setEnabled(True)
+            self.actions['connect'].setEnabled(False)
+            return True
+        else:
+            return False
+
+    def disconnect_user(self):
+        self.statusBar().showMessage("déconnecté")
+        self.desactivate_all_actions()
+        self.connected_user = None
+        self.actions['connect'].setEnabled(True)
+
+    def activate_actions(self):
+        def verify_db_and_enable(action):
+            if not action.db_connected_required or self.connected_db:
+                action.setEnabled(True)
+        
+        user, groups = self.connected_user
+        if 1 in groups: # if admin group
+            for _, action in self.actions.items():
+                verify_db_and_enable(action)
+        elif 2 in groups: #if user group
+            for _, action in self.actions.items():
+                if not action.admin_required:
+                    verify_db_and_enable(action)
+
+    def desactivate_all_actions(self):
+        for _, action in self.actions.items():
+            action.setEnabled(False)
+        self.actions['quit'].setEnabled(True)
 
     def set_infos(self):
         InfosCentreDialog(self)

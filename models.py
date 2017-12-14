@@ -32,8 +32,10 @@ class Models():
         self.reservations = Reservations(None, self.db)
         self.users_groups_rel = QSqlTableModel(None, self.db)
         self.users_groups_rel.setTable('users_groups_rel')
-        self.users_groups_rel.setEditStrategy(QSqlTableModel.OnFieldChange)
+        self.users_groups_rel.select()
+        #self.users_groups_rel.setEditStrategy(QSqlTableModel.OnFieldChange)
         self.users = Users(None, self.db, self.users_groups_rel)
+        logging.info("Models created.")
 
 class Fournisseurs(QSqlTableModel):
     def __init__(self, parent, db):
@@ -235,7 +237,7 @@ class Reservations(QSqlRelationalTableModel):
         self.setTable('reservations')
         rel = QSqlRelation('sejours', 'id', 'nom')
         self.setRelation(1, rel)
-        
+
 class Users(QSqlTableModel):
     def __init__(self, parent, db, users_groups_rel_model):
         super().__init__(parent, db)
@@ -258,3 +260,11 @@ class Users(QSqlTableModel):
         if not submited:
             logging.debug(model.lastError().text())
 
+    def get_groups(self, user_id):
+        model = self.users_groups_rel_model
+        logging.debug(model.rowCount())
+        model.setFilter('user_id = ' + str(user_id))
+        logging.debug(model.rowCount())
+        groups = [model.data(model.index(i, 2)) for i in range(model.rowCount())]
+        model.setFilter('')
+        return groups

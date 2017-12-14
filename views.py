@@ -24,6 +24,7 @@ class UserConnect(QDialog):
         super().__init__(parent)
         self.model = model
         self.model.setFilter('')
+        self.acl_group = None
         if self.model.rowCount() == 0:
             res = QMessageBox.question(
                     self,
@@ -33,10 +34,10 @@ class UserConnect(QDialog):
             if res:
                 UserDialog(
                         self,
-                        parent.models.users,
-                        parent.models.users_groups_rel)
+                        parent.models.users)
         self.user = QLineEdit()
         self.password = QLineEdit()
+        self.password.setEchoMode(2)
         ok_button = QPushButton('OK')
         cancel_button = QPushButton('Annuler')
         layout = QFormLayout()
@@ -60,14 +61,17 @@ class UserConnect(QDialog):
                 'Erreur',
                 "L'utilisateur " + self.user.text() + " n'existe pas.")
             return False
-        salt = self.model.data(self.model.index(0,3))
+        user_id = self.model.data(self.model.index(0, 0))
+        salt = self.model.data(self.model.index(0, 3))
         model_hash = self.model.data(self.model.index(0,4))
         code = QMessageAuthenticationCode(6, QByteArray(salt.encode()))
         code.addData(QByteArray(self.password.text().encode()))
         given_hash = str(code.result().toHex().data(), encoding='utf-8')
         if given_hash == model_hash:
             logging.debug('authentication succed!')
-            self.acl_group = self.model.data(self.model.index(0, 5))
+            self.acl_group = self.model.get_groups(user_id)
+            #group_string = self.model.data(self.model.index(0, 5))
+            #self.acl_group = [int(i) for i in group_string.split(',')]
             self.accept()
         else:
             logging.debug('wrong')
@@ -266,20 +270,20 @@ class MappedQDialog(QDialog):
         self.reject()
 
 class UsersArrayDialog(RowEditDialog):
-    def __init__(self, parent, users_model, users_groups_model):
+    def __init__(self, parent, users_model):
         super().__init__(parent, users_model)
 
-        self.users_groups_model = users_groups_model
         self.view.setColumnHidden(0, True) #id
         self.view.setColumnHidden(3, True) #password salt
         self.view.setColumnHidden(4, True) #password hash
+        self.model.setFilter('')
 
     def edit_row(self, index):
         idx = self.proxy.mapToSource(index)
-        UserDialog(self.parent, self.model, self.users_groups_model, idx) 
+        UserDialog(self.parent, self.model, idx) 
     
     def add_row(self):
-        dialog = UserDialog(self.parent, self.model, users_groups_model)
+        dialog = UserDialog(self.parent, self.model)
 
     def remove_row(self):
         reply = QMessageBox.question(
@@ -293,11 +297,10 @@ class UsersArrayDialog(RowEditDialog):
         self.model.submitAll()
 
 class UserDialog(QDialog):
-    def __init__(self, parent, users_model, users_groups_model, index=None):
+    def __init__(self, parent, users_model, index=None):
         super().__init__(parent)
 
         self.model = users_model
-        self.group_rel_model = users_groups_model
 
         name = QLineEdit()
         email = QLineEdit()
@@ -332,7 +335,7 @@ class UserDialog(QDialog):
         if index:
             self.mapper.setCurrentIndex(index.row())
         else:
-            self.model.insertRow(self.model.rowCount())
+            inserted = self.model.insertRow(self.model.rowCount())
             self.mapper.toLast()
 
         self.exec_()
