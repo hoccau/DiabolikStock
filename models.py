@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*- 
 
+"""
+Diabolik Stock | QT models
+"""
+
 from PyQt5.QtSql import (
     QSqlQueryModel, QSqlRelationalTableModel, QSqlRelation, QSqlTableModel,
-    QSqlQuery, QSqlRecord)
+    QSqlQuery)
 from PyQt5.QtCore import Qt
 import logging
 
@@ -34,7 +38,6 @@ class Models():
         self.users_groups_rel = QSqlTableModel(None, self.db)
         self.users_groups_rel.setTable('users_groups_rel')
         self.users_groups_rel.select()
-        #self.users_groups_rel.setEditStrategy(QSqlTableModel.OnFieldChange)
         self.users = Users(None, self.db, self.users_groups_rel)
         logging.info("Models created.")
 
@@ -180,7 +183,7 @@ class MallesTypesWithMalles(QSqlQueryModel):
         query.bindValue(':id_', id_)
         res = query.exec_()
         if res:
-            logging.info("Malle type id: " + str(id_) + " deleted.")
+            logging.info("Malle type id:%s deleted.", id_)
             self.select()
             return True
         else:
@@ -234,6 +237,8 @@ class Users(QSqlTableModel):
         logging.debug(str(user_id) + ' ' + str(group_id))
         model = self.users_groups_rel_model
         inserted = model.insertRow(model.rowCount())
+        if not inserted:
+            logging.warning('Row not inserted in %s', model)
         model.setData(model.index(model.rowCount() - 1, 1), user_id)
         model.setData(model.index(model.rowCount() - 1, 2), group_id)
         submited = model.submitAll()
@@ -241,7 +246,7 @@ class Users(QSqlTableModel):
         if submited:
             logging.info("group submited")
         if not submited:
-            logging.debug(model.lastError().text())
+            logging.warning(model.lastError().text())
 
     def get_groups(self, user_id):
         model = self.users_groups_rel_model

@@ -6,21 +6,18 @@ Diabolik Stock
 Logiciel de gestion du matériel pour l'association Diabolo
 """
 
-from PyQt5 import QtSql
-from PyQt5.QtSql import QSqlRelationalDelegate
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import (
     QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog,
     QInputDialog)
 from PyQt5.QtGui import QIcon
 from models import (
-    Models, Malles, MallesTypesWithMalles, Fournisseurs, Inputs, Produits,
-    Sejours)
+    Models, MallesTypesWithMalles, Fournisseurs, Inputs, Produits)
 from db import Query
 from views import (
-    MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm, 
-    StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog, 
-    SejourForm, LieuForm, ReservationForm, UsersArrayDialog, ConfigDialog, 
+    MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm,
+    StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog,
+    SejourForm, LieuForm, ReservationForm, UsersArrayDialog, ConfigDialog,
     ProduitsArrayDialog, InputsArray, LieuxArrayDialog, UserConnect)
 import logging
 
@@ -68,16 +65,16 @@ class MainWindow(QMainWindow):
             'add_produit': CtrlAction(QIcon(), '&Produit', self.add_product),
             'add_input': CtrlAction(QIcon(),'&Entrée de produit', self.add_input),
             'add_malle_type': CtrlAction(
-                QIcon(),'&Malle type', self.add_malle_type),
-            'add_malle': CtrlAction(QIcon(),'&Malle', self.add_malle),
-            'add_sejour': CtrlAction(QIcon(),'&Séjour', self.add_sejour),
-            'add_reservation': CtrlAction(QIcon(),'&Reservation', self.add_reservation),
+                QIcon(), '&Malle type', self.add_malle_type),
+            'add_malle': CtrlAction(QIcon(), '&Malle', self.add_malle),
+            'add_sejour': CtrlAction(QIcon(), '&Séjour', self.add_sejour),
+            'add_reservation': CtrlAction(QIcon(), '&Reservation', self.add_reservation),
             'view_malles': CtrlAction(
                 QIcon(), '&Malles', self.display_malles, admin_required=False),
             'view_malles_types':CtrlAction(
-                QIcon(),'&Types de malles', self.display_malles_types),
+                QIcon(), '&Types de malles', self.display_malles_types),
             'view_fournisseurs':CtrlAction(
-                QIcon(),'&Fournisseurs', self.display_fournisseurs),
+                QIcon(), '&Fournisseurs', self.display_fournisseurs),
             'view_produits':CtrlAction(QIcon(), '&Produits', self.display_produits),
             'view_inputs':CtrlAction(QIcon(), '&Arrivages', self.display_inputs),
             'view_sejours':CtrlAction(QIcon(), '&Séjours', self.display_sejours),
@@ -129,9 +126,6 @@ class MainWindow(QMainWindow):
             action.setShortcut(shortcut)
         action.triggered.connect(function_name)
         return action
-
-    def view_rapport(self):
-        RapportDialog(self)
 
     def connect(self):
         connected = self.connect_db()
@@ -191,7 +185,7 @@ class MainWindow(QMainWindow):
     def desactivate_all_actions(self):
         for _, action in self.actions.items():
             action.setEnabled(False)
-        self.actions['quit'].setEnabled(True)
+        self.actions['exit'].setEnabled(True)
 
     def set_config(self):
         ConfigDialog(self, self.settings)
@@ -316,7 +310,7 @@ class CtrlAction(QAction):
             self.setShortcut(shortcut)
 
 if __name__ == '__main__':
-    import sys, os
+    import sys
     
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(

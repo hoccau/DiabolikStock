@@ -1,15 +1,19 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*- 
 
+"""
+Diabolik Stock | QT Views
+"""
+
 from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget,
-    QAbstractItemDelegate, QItemDelegate, QToolButton, QGroupBox, QCheckBox)
+    QItemDelegate, QToolButton, QGroupBox, QCheckBox)
 from PyQt5.QtCore import (
-    QDate, QDateTime, QByteArray, QSize, QModelIndex, Qt, QVariant, 
-    QSortFilterProxyModel, QMessageAuthenticationCode)
+    QDate, QDateTime, QByteArray, QSize, Qt, QVariant, QSortFilterProxyModel, 
+    QMessageAuthenticationCode)
 from validators import EmailValidator, PhoneValidator, CPValidator, PortValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -22,6 +26,7 @@ import logging
 class UserConnect(QDialog):
     def __init__(self, parent, model):
         super().__init__(parent)
+        self.setWindowTitle('Connection')
         self.model = model
         self.model.setFilter('')
         self.acl_group = None
@@ -82,6 +87,7 @@ class ConfigDialog(QDialog):
     def __init__(self, parent, settings):
         super().__init__(parent)
 
+        self.setWindowTitle('Configuration')
         self.settings = settings
         self.db_hostname = QLineEdit()
         self.db_name = QLineEdit()
@@ -150,11 +156,16 @@ class StartupView(QWidget):
 
         actions = parent.actions
         malle_button = self._create_button(actions['view_malles'], 'caisse.png', 'Malles')
-        malle_type_button = self._create_button(actions['view_malles_types'], 'caisse_type.png', 'Types')
-        fournisseur_button = self._create_button(actions['view_fournisseurs'], 'fournisseur.png', 'Fournisseurs')
-        input_button = self._create_button(actions['view_inputs'], 'input.png', 'Entrée de Produit')
-        product_button = self._create_button(actions['view_produits'], 'produit.png', 'Produits')
-        users_button = self._create_button(actions['view_users'], 'user.png', 'Utilisateurs')
+        malle_type_button = self._create_button(
+            actions['view_malles_types'], 'caisse_type.png', 'Types')
+        fournisseur_button = self._create_button(
+            actions['view_fournisseurs'], 'fournisseur.png', 'Fournisseurs')
+        input_button = self._create_button(
+            actions['view_inputs'], 'input.png', 'Entrée de Produit')
+        product_button = self._create_button(
+            actions['view_produits'], 'produit.png', 'Produits')
+        users_button = self._create_button(
+            actions['view_users'], 'user.png', 'Utilisateurs')
         
         self.grid.addWidget(malle_button, 0, 0)
         self.grid.addWidget(malle_type_button, 0, 1)
@@ -284,6 +295,7 @@ class UsersArrayDialog(RowEditDialog):
     def __init__(self, parent, users_model):
         super().__init__(parent, users_model)
 
+        self.setWindowTitle('Utilisateurs')
         self.view.setColumnHidden(0, True) #id
         self.view.setColumnHidden(3, True) #password salt
         self.view.setColumnHidden(4, True) #password hash
@@ -311,6 +323,7 @@ class UserDialog(QDialog):
     def __init__(self, parent, users_model, index=None):
         super().__init__(parent)
 
+        self.setWindowTitle('Utilisateur')
         self.model = users_model
 
         name = QLineEdit()
@@ -375,6 +388,7 @@ class UserDialog(QDialog):
 class MallesArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
+        self.setWindowTitle('Malles')
         self.exec_()
         self.parent = parent
 
@@ -405,6 +419,7 @@ class MallesArrayDialog(RowEditDialog):
 class LieuxArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
+        self.setWindowTitle('Lieux')
         self.exec_()
         self.parent = parent
 
@@ -418,6 +433,7 @@ class LieuxArrayDialog(RowEditDialog):
 class MallesTypesDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
+        self.setWindowTitle('Malles Types')
         self.view.hideColumn(0) # hide id
         self.exec_()
 
@@ -455,6 +471,7 @@ class MallesTypesDialog(RowEditDialog):
 class ProduitsArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
+        self.setWindowTitle('Produits')
         self.exec_()
 
     def add_row(self):
@@ -484,11 +501,11 @@ class ProduitsArrayDialog(RowEditDialog):
                 None, "Patientez donc un peu...",
                 "Cette fonctionnalité n'est pas encore disponible")
 
-
 class Fournisseur(MappedQDialog):
     def __init__(self, parent, model):
         super(Fournisseur, self).__init__(parent, model)
 
+        self.setWindowTitle('Fournisseurs')
         self.widgets['nom'] = QLineEdit()
         self.widgets['email'] = QLineEdit()
         self.widgets['phone'] = QLineEdit()
@@ -545,6 +562,7 @@ class ProductForm(MappedQDialog):
     def __init__(self, parent, model, fournisseurs_model, index=None):
         super().__init__(parent, model)
 
+        self.setWindowTitle('Produit')
         self.widgets['nom'] = QLineEdit()
         self.widgets['fournisseur_id'] = QComboBox()
         self.widgets['fournisseur_id'].setModel(fournisseurs_model)
@@ -684,8 +702,6 @@ class AddInput(MappedQDialog):
             self.accept()
         if not submited:
             db_error = self.model.lastError()
-            last_query = self.model.query().lastError().type()
-            logging.debug(db_error)
             if db_error:
                 logging.warning(self.model.tableName()+' '+db_error.text())
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
@@ -693,6 +709,7 @@ class AddInput(MappedQDialog):
 class InputsArray(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
+        self.setWindowTitle('Arrivages')
 
     def edit_row(self, index):
         pass
@@ -821,6 +838,7 @@ class MalleForm(MappedQDialog):
     def __init__(self, parent, model, models, index=None):
         super().__init__(parent, model)
 
+        self.setWindowTitle('Malle')
         self.contenu_malles_model = models.contenu_malles
         self.models = models
         self.malle_log_model = models.malle_log
@@ -1002,6 +1020,7 @@ class MalleLogArray(DisplayTableViewDialog):
     def __init__(self, parent, model, malle_ref):
         super().__init__(parent, model)
 
+        self.setWindowTitle("Journal d'entretien")
         self.malle_ref = malle_ref
 
         self.view.hideColumn(0) # hide id
@@ -1096,7 +1115,7 @@ class AddMalleType(MappedQDialog):
             self.model.select()
             self.accept()
             type_id = self.model.record(self.model.rowCount() -1).value(0)
-            self.products = ContenuType(
+            ContenuType(
                 self,
                 self.contenu_type_model,
                 type_id,
@@ -1112,6 +1131,7 @@ class ContenuType(QDialog):
     def __init__(self, parent, model, type_id=None, denomination=None):
         super().__init__(parent)
 
+        self.setWindowTitle('Contenu de la malle type')
         self.model = model
         self.model.select()
         self.type_id = type_id
@@ -1186,7 +1206,7 @@ class ContenuType(QDialog):
             return False
         select = self.products_table.selectionModel()
         row = select.currentIndex().row()
-        removed = self.model.removeRow(row)
+        self.model.removeRow(row)
         submited = self.model.submitAll()
         if not submited:
             logging.warning(self.model.lastError().text())
@@ -1252,6 +1272,7 @@ class LieuForm(MappedQDialog):
     def __init__(self, parent, model, index=None):
         super().__init__(parent, model)
 
+        self.setWindowTitle('Lieu')
         self.widgets['nom'] = QLineEdit()
         self.widgets['ville'] = QLineEdit()
         self.widgets['cp'] = QLineEdit()
@@ -1289,6 +1310,7 @@ class ReservationForm(MappedQDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
 
+        self.setWindowTitle('Réservation')
         self.widgets['sejour_id'] = QComboBox()
         self.widgets['date_start'] = QCalendarWidget()
         self.widgets['date_stop'] = QCalendarWidget()
@@ -1346,9 +1368,9 @@ class QSqlRelationalDelegateBehindProxy(QSqlRelationalDelegate):
 class MalleDelegate(QItemDelegate):
     """ Like QSqlRelationalDelegate behaviour """
     def setModelData(self, editor, model, index):
-            if index.column() == 2 or index.column() == 1:
-                idx = editor.model().index(editor.currentIndex(), 0)
-                data = editor.model().data(idx)
-                res = model.setData(index, data, Qt.EditRole)
-            else:
-                super().setModelData(editor, model, index)
+        if index.column() == 2 or index.column() == 1:
+            idx = editor.model().index(editor.currentIndex(), 0)
+            data = editor.model().data(idx)
+            model.setData(index, data, Qt.EditRole)
+        else:
+            super().setModelData(editor, model, index)
