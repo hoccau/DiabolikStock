@@ -70,6 +70,9 @@ class Inputs(QSqlRelationalTableModel):
         self.setRelation(1, rel1)
         rel2 = QSqlRelation('produits', 'id', 'nom')
         self.setRelation(2, rel2)
+        headers = ["Fournisseur", "Produit", "Date", "Prix", "Quantité"]
+        for i, name in enumerate(headers, 1):
+            self.setHeaderData(i, Qt.Horizontal, name)
         self.select()
 
 class Malles(QSqlRelationalTableModel):
@@ -83,6 +86,12 @@ class Malles(QSqlRelationalTableModel):
             2, QSqlRelation('lieux', 'id', 'nom'))
         self.setJoinMode(QSqlRelationalTableModel.LeftJoin)
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        self.setHeaderData(0, Qt.Horizontal, "Référence")
+        self.setHeaderData(1, Qt.Horizontal, "Type")
+        self.setHeaderData(2, Qt.Horizontal, "Lieu")
+        self.setHeaderData(3, Qt.Horizontal, "Allée")
+        self.setHeaderData(4, Qt.Horizontal, "Étagère")
+        self.setHeaderData(5, Qt.Horizontal, "Emplacement")
         self.select()
 
 class ContenuMalles(QSqlQueryModel):

@@ -389,6 +389,7 @@ class MallesArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Malles')
+        self.resize(750, 400)
         self.exec_()
         self.parent = parent
 
@@ -714,6 +715,8 @@ class InputsArray(RowEditDialog):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Arrivages')
+        self.view.setColumnHidden(0, True)
+        self.resize(680, 376)
 
     def edit_row(self, index):
         pass
