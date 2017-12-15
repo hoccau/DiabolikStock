@@ -228,6 +228,32 @@ $contenu_malle_init$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION contenu_malle_update() 
 RETURNS TRIGGER AS $contenu_malle_update$
 -- This function add blank contenu_malle from contenu_type according to the 
+-- type of the updated malle. It is triggered at the malle update. 
+    BEGIN
+        IF OLD.type_id != NEW.type_id THEN
+            DELETE FROM contenu_malles
+            WHERE contenu_malles.malle_ref = OLD.reference;
+            INSERT INTO contenu_malles(
+                malle_ref,
+                contenu_type_id,
+                quantity,
+                etat_id
+                )
+            SELECT
+            NEW.reference,
+            id,
+            '0',
+            '1'
+            FROM contenu_type
+            WHERE contenu_type.type_id = NEW.type_id;
+          END IF;
+        RETURN NEW;
+    END;
+$contenu_malle_update$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION contenu_type_update() 
+RETURNS TRIGGER AS $contenu_type_update$
+-- This function add blank contenu_malle from contenu_type according to the 
 -- type of the new malle. It is triggered at the contenu_malle insert. 
     BEGIN
         INSERT INTO contenu_malles(
@@ -245,7 +271,7 @@ RETURNS TRIGGER AS $contenu_malle_update$
         WHERE malles.type_id = NEW.type_id;
         RETURN NEW;
     END;
-$contenu_malle_update$ LANGUAGE plpgsql;
+$contenu_type_update$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION contenu_malle_delete() 
 RETURNS TRIGGER AS $contenu_malle_delete$
@@ -284,8 +310,10 @@ $update_stock_after_update_contenu_malles$ LANGUAGE plpgsql;
 
 CREATE TRIGGER contenu_malle_trig AFTER INSERT ON malles
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_init();
-CREATE TRIGGER update_type_trig AFTER INSERT ON contenu_type
+CREATE TRIGGER contenu_malle_update_trig AFTER UPDATE ON malles
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_update();
+CREATE TRIGGER update_type_trig AFTER INSERT ON contenu_type
+    FOR EACH ROW EXECUTE PROCEDURE contenu_type_update();
 CREATE TRIGGER delete_type_trig BEFORE DELETE ON contenu_type
     FOR EACH ROW EXECUTE PROCEDURE contenu_malle_delete();
 CREATE TRIGGER insert_input AFTER INSERT ON inputs
