@@ -118,6 +118,7 @@ class MainWindow(QMainWindow):
         self.db = Query(self)
         self.connected_user = None
         self.connect()
+        self.init_config()
         self.setCentralWidget(StartupView(self))
 
     def _add_action(self, name, function_name, shortcut=None):
@@ -243,7 +244,7 @@ class MainWindow(QMainWindow):
         dialog = UsersArrayDialog(self, self.models.users)
         dialog.exec_()
 
-    def set_autostock(self):
+    def init_config(self):
         if self.connected_db:
             self.db.enable_autostock(self.settings.value('autostock'))
 
