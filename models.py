@@ -22,6 +22,11 @@ class Models():
         self.fournisseurs = Fournisseurs(None, self.db)
         self.produits = Produits(None, self.db)
         self.malles_types = MallesTypes(None, self.db)
+        self.categories = QSqlTableModel(None, self.db)
+        self.categories.setTable('categories')
+        self.categories.select()
+        self.categories.setEditStrategy(QSqlTableModel.OnManualSubmit)
+        #self.categories.rowsInserted.connect(self.categories.select)
         self.malles = Malles(None, self.db)
         self.contenu_malles = ContenuMalles()
         self.malle_log = MalleLog(None, self.db)
@@ -81,17 +86,20 @@ class Malles(QSqlRelationalTableModel):
 
         self.setTable('malles')
         self.setRelation(
-            1, QSqlRelation('malles_types', 'id', 'denomination'))
+            1, QSqlRelation('categories', 'id', 'name'))
         self.setRelation(
-            2, QSqlRelation('lieux', 'id', 'nom'))
+            2, QSqlRelation('malles_types', 'id', 'denomination'))
+        self.setRelation(
+            3, QSqlRelation('lieux', 'id', 'nom'))
         self.setJoinMode(QSqlRelationalTableModel.LeftJoin)
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.setHeaderData(0, Qt.Horizontal, "Référence")
-        self.setHeaderData(1, Qt.Horizontal, "Type")
-        self.setHeaderData(2, Qt.Horizontal, "Lieu")
-        self.setHeaderData(3, Qt.Horizontal, "Allée")
-        self.setHeaderData(4, Qt.Horizontal, "Étagère")
-        self.setHeaderData(5, Qt.Horizontal, "Emplacement")
+        self.setHeaderData(1, Qt.Horizontal, "Catégorie")
+        self.setHeaderData(2, Qt.Horizontal, "Type")
+        self.setHeaderData(3, Qt.Horizontal, "Lieu")
+        self.setHeaderData(4, Qt.Horizontal, "Allée")
+        self.setHeaderData(5, Qt.Horizontal, "Étagère")
+        self.setHeaderData(6, Qt.Horizontal, "Emplacement")
         self.select()
 
 class ContenuMalles(QSqlQueryModel):

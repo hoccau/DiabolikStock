@@ -18,7 +18,8 @@ from views import (
     MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm,
     StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog,
     SejourForm, LieuForm, ReservationForm, UsersArrayDialog, ConfigDialog,
-    ProduitsArrayDialog, InputsArray, LieuxArrayDialog, UserConnect)
+    ProduitsArrayDialog, InputsArray, LieuxArrayDialog, UserConnect,
+    CategoriesArray)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,8 @@ class MainWindow(QMainWindow):
             'add_reservation': CtrlAction(QIcon(), '&Reservation', self.add_reservation),
             'view_malles': CtrlAction(
                 QIcon(), '&Malles', self.display_malles, admin_required=False),
+            'view_categories': CtrlAction(
+                QIcon(), '&Categories', self.display_categories),
             'view_malles_types':CtrlAction(
                 QIcon(), '&Types de malles', self.display_malles_types),
             'view_fournisseurs':CtrlAction(
@@ -95,6 +98,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.actions['settings'])
         view_menu = menubar.addMenu('&Vue')
         view_menu.addAction(self.actions['view_malles'])
+        view_menu.addAction(self.actions['view_categories'])
         view_menu.addAction(self.actions['view_malles_types'])
         view_menu.addAction(self.actions['view_fournisseurs'])
         view_menu.addAction(self.actions['view_produits'])
@@ -218,6 +222,10 @@ class MainWindow(QMainWindow):
 
     def display_malles(self):
         MallesArrayDialog(self, self.models.malles)
+
+    def display_categories(self):
+        dialog = CategoriesArray(self, self.models.categories)
+        dialog.exec_()
 
     def display_malles_types(self):
         MallesTypesDialog(self, MallesTypesWithMalles())

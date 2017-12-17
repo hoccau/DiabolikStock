@@ -38,8 +38,17 @@ CREATE TABLE IF NOT EXISTS malles_types(
 	observation varchar(255),
     UNIQUE(denomination)
 	);
+
+CREATE TABLE IF NOT EXISTS categories(
+    id serial PRIMARY KEY,
+    name varchar(32) NOT NULL,
+    observation varchar(255),
+    UNIQUE(name)
+    );
+
 CREATE TABLE IF NOT EXISTS malles(
 	reference varchar(6) PRIMARY KEY,
+    category_id integer,
 	type_id integer,
     lieu_id integer, 
     section varchar(20),
@@ -47,7 +56,8 @@ CREATE TABLE IF NOT EXISTS malles(
     slot varchar(20),
     observation varchar(1024),
 	FOREIGN KEY (type_id) REFERENCES malles_types(id),
-    FOREIGN KEY (lieu_id) REFERENCES lieux(id)
+    FOREIGN KEY (lieu_id) REFERENCES lieux(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
 	);
 
 CREATE TABLE IF NOT EXISTS reservations_malles_rel(

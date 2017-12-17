@@ -145,7 +145,7 @@ class ConfigDialog(QDialog):
         self.settings.setValue('db/user', self.db_user.text())
         self.settings.setValue('db/password', self.db_password.text())
         self.settings.setValue('autostock', self.auto_stock.isChecked())
-        self.parent().set_autostock()
+        self.parent().init_config()
         self.accept()
 
 class StartupView(QWidget):
@@ -416,6 +416,28 @@ class MallesArrayDialog(RowEditDialog):
         super().remove_row()
         res = self.model.submitAll()
         logging.debug(res)
+
+class CategoriesArray(RowEditDialog):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.setWindowTitle('Categories')
+        self.view.setColumnHidden(0, True)
+        self.view.setEditTriggers(QAbstractItemView.AllEditTriggers)
+        self.view.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.ok_button = QPushButton('OK')
+        self.layout().children()[0].insertWidget(0, self.ok_button)
+        self.ok_button.clicked.connect(self.submit_and_close)
+
+    def edit_row(self, index):
+        pass
+
+    def add_row(self, index):
+        self.model.insertRow(self.model.rowCount())
+
+    def submit_and_close(self):
+        submited = self.model.submitAll()
+        if submited:
+            self.close()
 
 class LieuxArrayDialog(RowEditDialog):
     def __init__(self, parent, model):
@@ -852,6 +874,7 @@ class MalleForm(MappedQDialog):
         self.db = parent.db
 
         self.widgets['reference'] = QLineEdit()
+        self.widgets['category_id'] = QComboBox()
         self.widgets['type_id'] = QComboBox()
         self.widgets['lieu_id'] = QComboBox() 
         self.widgets['section'] = QLineEdit()
@@ -866,6 +889,9 @@ class MalleForm(MappedQDialog):
         self.widgets['lieu_id'].setModel(models.lieux)
         self.widgets['lieu_id'].setModelColumn(
             models.lieux.fieldIndex('nom'))
+        self.widgets['category_id'].setModel(models.categories)
+        self.widgets['category_id'].setModelColumn(
+            models.categories.fieldIndex('name'))
         
         self.mapper.setItemDelegate(MalleDelegate(self))
         
@@ -881,6 +907,7 @@ class MalleForm(MappedQDialog):
         
         form_layout_left = QFormLayout()
         form_layout_left.addRow('Référence', self.widgets['reference'])
+        form_layout_left.addRow('Catégorie', self.widgets['category_id'])
         form_layout_left.addRow('Type', self.widgets['type_id'])
         lieu_layout = QHBoxLayout()
         lieu_layout.addWidget(self.widgets['lieu_id'])
