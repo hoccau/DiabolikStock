@@ -485,6 +485,19 @@ class MallesTypes(RowEdit):
             logging.warning(error.text())
             QMessageBox.warning(self, "Erreur", error.text())
 
+class FournisseursArray(RowEdit):
+    def __init__(self, parent, model):
+        super().__init__(parent, model)
+        self.setWindowTitle('Fournisseurs')
+        self.view.hideColumn(0) # hide id
+    
+    def add_row(self):
+        self.parent.add_fournisseur()
+        self.model.select()
+
+    def edit_row(self, index):
+        Fournisseur(self, self.model)
+
 class ProduitsArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)

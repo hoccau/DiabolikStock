@@ -18,7 +18,8 @@ from views import (
     MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm,
     DisplayTableView, MallesArray, MallesTypes,SejourForm, LieuForm, 
     ReservationForm, UsersArray, ConfigDialog, ProduitsArray, InputsArray, 
-    LieuxArray, UserConnect, CategoriesArray, HCloseDialog, HSaveDialog)
+    LieuxArray, UserConnect, CategoriesArray, HCloseDialog, HSaveDialog,
+    FournisseursArray)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
             'add_input': CtrlAction('','&Entrée de produit', self.add_input),
             'add_malle_type': CtrlAction(
                 '', '&Malle type', self.add_malle_type),
-            'add_malle': CtrlAction('', '&Malle', self.add_malle),
+            'add_malle': CtrlAction('add_malle', '&Malle', self.add_malle),
             'add_sejour': CtrlAction('', '&Séjour', self.add_sejour),
             'add_reservation': CtrlAction('', '&Reservation', self.add_reservation),
             'view_malles': CtrlAction(
@@ -116,7 +117,7 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.actions['add_reservation'])
 
         toolbar_actions = [
-            'view_malles', 
+            'add_malle', 
             'view_malles_types',
             'view_fournisseurs',
             'view_inputs',
@@ -235,8 +236,8 @@ class MainWindow(QMainWindow):
         HCloseDialog(self, MallesTypes(self, MallesTypesWithMalles())).exec_()
 
     def display_fournisseurs(self):
-        HCloseDialog(
-            self, DisplayTableView(self, Fournisseurs(self, self.db.db))).exec_()
+        HSaveDialog(
+            self, FournisseursArray(self, Fournisseurs(self, self.db.db))).exec_()
 
     def display_inputs(self):
         HCloseDialog(self, InputsArray(self, Inputs(self, self.db.db))).exec_()
