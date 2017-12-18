@@ -9,11 +9,14 @@ from PyQt5.QtWidgets import (
     QDialog, QLineEdit, QTextEdit, QDateEdit, QPushButton, QDataWidgetMapper, 
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
-    QVBoxLayout, QLabel, QWidget, QStyledItemDelegate, QCalendarWidget,
-    QItemDelegate, QToolButton, QGroupBox, QCheckBox)
+    QVBoxLayout, QLabel, QWidget, QCalendarWidget, QToolButton, QGroupBox, 
+    QCheckBox)
 from PyQt5.QtCore import (
     QDate, QDateTime, QByteArray, QSize, Qt, QVariant, QSortFilterProxyModel, 
     QMessageAuthenticationCode)
+from delegates import (ComboBoxCompleterDelegate, EtatDelegate, 
+    QSqlRelationalDelegateBehindProxy, ComboBoxCompleterProxiedDelegate,
+    MalleDelegate, QSqlRelationalDelegateWithNullValues)
 from validators import EmailValidator, PhoneValidator, CPValidator, PortValidator
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtSql import QSqlRelationalDelegate
@@ -635,19 +638,6 @@ class ProductForm(MappedQDialog):
         else:
             displayed_error(self.model.lastError())
 
-class QSqlRelationalDelegateWithNullValues(QSqlRelationalDelegate):
-    """ Delegate for storing NULL value in database when no data (instead of 
-    empty string) in 'reference' field """
-    
-    def setModelData(self, editor, model, index):
-        if index.column() == 3 and ''.join(editor.text().split()) == '':
-            model.setData(index, QVariant()) #QVariant() means NULL value in db 
-        elif index.column() == 1:
-            data = editor.text().lower()
-            model.setData(index, data)
-        else:
-            super().setModelData(editor, model, index)
-
 class AddInput(MappedQDialog):
     def __init__(self, parent, model):
         super(AddInput, self).__init__(parent, model)
@@ -797,6 +787,8 @@ class AddInputArray(QDialog):
         self.proxy_model.setSourceModel(model)
         self.table.setModel(self.proxy_model)
         self.table.setItemDelegate(QSqlRelationalDelegateBehindProxy())
+        completer_delegate = ComboBoxCompleterProxiedDelegate(self)
+        self.table.setItemDelegateForColumn(2, completer_delegate)
         
         self.table.setColumnHidden(0, True) # id
         self.table.setColumnHidden(1, True) # fournisseur
@@ -1102,22 +1094,6 @@ class MalleLogArray(DisplayTableView):
         row = selected.currentIndex().row()
         self.proxy.removeRow(row)
 
-class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
-    def __init__(self, parent=None, relation_model=2):
-        super().__init__(parent)
-        self.relation_model = relation_model
-
-    def createEditor(self, parent, option, index):
-        editor = QComboBox(parent)
-        editor.setEditable(True)
-        editor.setModel(index.model().relationModel(self.relation_model))
-        editor.setModelColumn(1)
-        return editor
-
-    def setEditorData(self, editor, index):
-        value = index.model().relationModel(self.relation_model).data(index)
-        if value:
-            editor.setCurrentIndex(int(value))
 
 class AddMalleType(MappedQDialog):
     def __init__(self, parent, model):
@@ -1354,49 +1330,3 @@ class ReservationForm(MappedQDialog):
             self.accept()
         else:
             logging.warning(self.model.lastError().text())
-
-class EtatDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def paint(self, painter, opt, index):
-        super().paint(painter, opt, index)
-
-    def createEditor(self, parent, option, index):
-        logging.debug(index)
-        editor = QComboBox(parent)
-        editor.setModel(index.model().etats_model)
-        editor.setModelColumn(1)
-        return editor
-
-    def setModelData(self, editor, model, index):
-        idx = editor.model().index(editor.currentIndex(), 0)
-        model.setData(index, editor.model().data(idx), None)
-
-class QSqlRelationalDelegateBehindProxy(QSqlRelationalDelegate):
-    """ Magic delegate to have a QSqlRelationalDelegate behind a 
-    QSortFilterProxyModel. Copied from https://stackoverflow.com/questions/28231773/qsqlrelationaltablemodel-with-qsqlrelationaldelegate-not-working-behind-qabstrac """
-    def createEditor(self, parent, option, index):
-        proxy = index.model()
-        base_index = proxy.mapToSource(index)
-        return super().createEditor(parent, option, base_index)
-
-    def setEditorData(self, editor, index):
-        proxy = index.model()
-        base_index = proxy.mapToSource(index)
-        return super().setEditorData(editor, base_index)
-
-    def setModelData(self, editor, model, index):
-        base_model = model.sourceModel()
-        base_index = model.mapToSource(index)
-        return super().setModelData(editor, base_model, base_index)
-
-class MalleDelegate(QItemDelegate):
-    """ Like QSqlRelationalDelegate behaviour """
-    def setModelData(self, editor, model, index):
-        if index.column() == 2 or index.column() == 1:
-            idx = editor.model().index(editor.currentIndex(), 0)
-            data = editor.model().data(idx)
-            model.setData(index, data, Qt.EditRole)
-        else:
-            super().setModelData(editor, model, index)
