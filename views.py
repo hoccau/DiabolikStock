@@ -83,6 +83,46 @@ class UserConnect(QDialog):
             QMessageBox.warning(self, 'Erreur', "Mauvais mot de passe") 
             return False 
 
+class HCloseDialog(QDialog):
+    """ wrap a DisplayTableView into QDialog """
+    def __init__(self, parent, widget):
+        super().__init__(parent)
+
+        self.main_widget = widget
+        self.setWindowTitle(self.main_widget.windowTitle())
+        self.close_button = QPushButton('Fermer')
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(widget)
+
+        self.button_layout = QHBoxLayout()
+        self.button_layout.addWidget(self.close_button)
+        layout.addLayout(self.button_layout)
+
+        self.close_button.clicked.connect(self.accept)
+
+class HSaveDialog(HCloseDialog):
+    def __init__(self, parent, widget):
+        super().__init__(parent, widget)
+        
+        save_button = QPushButton('Enregistrer')
+        self.close_button.setText('Annuler')
+        self.button_layout.addWidget(save_button)
+        save_button.clicked.connect(self.save_and_quit)
+        self.close_button.clicked.connect(self.revert_and_quit)
+    
+    def save_and_quit(self):
+        submited = self.main_widget.model.submitAll()
+        if not submited:
+            error = self.model.lastError()
+            logging.warning(error.text())
+            QMessageBox.warning(self, "Erreur", error.text())
+        self.accept()
+
+    def revert_and_quit(self):
+        self.main_widget.model.revertAll()
+        self.close()
+
 class ConfigDialog(QDialog):
     def __init__(self, parent, settings):
         super().__init__(parent)
@@ -148,68 +188,28 @@ class ConfigDialog(QDialog):
         self.parent().init_config()
         self.accept()
 
-class StartupView(QWidget):
-    def __init__(self, parent):
-        super(StartupView, self).__init__(parent)
-        
-        self.grid = QGridLayout()
-
-        actions = parent.actions
-        malle_button = self._create_button(actions['view_malles'], 'caisse.png', 'Malles')
-        malle_type_button = self._create_button(
-            actions['view_malles_types'], 'caisse_type.png', 'Types')
-        fournisseur_button = self._create_button(
-            actions['view_fournisseurs'], 'fournisseur.png', 'Fournisseurs')
-        input_button = self._create_button(
-            actions['view_inputs'], 'input.png', 'Entrée de Produit')
-        product_button = self._create_button(
-            actions['view_produits'], 'produit.png', 'Produits')
-        users_button = self._create_button(
-            actions['view_users'], 'user.png', 'Utilisateurs')
-        
-        self.grid.addWidget(malle_button, 0, 0)
-        self.grid.addWidget(malle_type_button, 0, 1)
-        self.grid.addWidget(fournisseur_button, 1, 0)
-        self.grid.addWidget(input_button, 1, 1)
-        self.grid.addWidget(product_button, 1, 2)
-        self.grid.addWidget(users_button, 0, 2)
-
-        self.setLayout(self.grid)
-
-    def _create_button(self, action, image, text):
-        action.setIcon(QIcon('images/'+image))
-        button = QToolButton()
-        button.setDefaultAction(action)
-        button.setIconSize(QSize(127, 100))
-        button.setText(text)
-        return button
-
-class DisplayTableViewDialog(QDialog):
+class DisplayTableView(QWidget):
     def __init__(self, parent, model):
-        super(DisplayTableViewDialog, self).__init__(parent)
+        QWidget.__init__(self, parent)
         
         self.model = model
-        self.parent = parent
-        self.view = QTableView(self)
+        self.view = QTableView()
         self.proxy = QSortFilterProxyModel()
         self.proxy.setSourceModel(model)
         self.view.setModel(self.proxy)
         self.view.setSortingEnabled(True)
-        self.view.setItemDelegate(QSqlRelationalDelegate())
-
-        close_button = QPushButton('Fermer')
+        self.view.setItemDelegate(QSqlRelationalDelegateBehindProxy())
+        
+        self.parent = parent
 
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(close_button)
         layout.addLayout(buttons_layout)
         self.setLayout(layout)
         self.setMinimumSize(500, 400)
 
-        close_button.clicked.connect(self.accept)
-
-class RowEditDialog(DisplayTableViewDialog):
+class RowEdit(DisplayTableView):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -291,7 +291,7 @@ class MappedQDialog(QDialog):
         self.model.revertAll()
         self.reject()
 
-class UsersArrayDialog(RowEditDialog):
+class UsersArray(RowEdit):
     def __init__(self, parent, users_model):
         super().__init__(parent, users_model)
 
@@ -306,7 +306,7 @@ class UsersArrayDialog(RowEditDialog):
         UserDialog(self.parent, self.model, idx) 
     
     def add_row(self):
-        dialog = UserDialog(self.parent, self.model)
+        UserDialog(self.parent, self.model)
 
     def remove_row(self):
         reply = QMessageBox.question(
@@ -385,12 +385,11 @@ class UserDialog(QDialog):
             self.model.set_group(user_id, group_id)
         self.accept()
 
-class MallesArrayDialog(RowEditDialog):
+class MallesArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Malles')
         self.resize(750, 400)
-        self.exec_()
         self.parent = parent
 
     def add_row(self):
@@ -417,16 +416,13 @@ class MallesArrayDialog(RowEditDialog):
         res = self.model.submitAll()
         logging.debug(res)
 
-class CategoriesArray(RowEditDialog):
+class CategoriesArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Categories')
         self.view.setColumnHidden(0, True)
         self.view.setEditTriggers(QAbstractItemView.AllEditTriggers)
         self.view.setSelectionBehavior(QAbstractItemView.SelectItems)
-        self.ok_button = QPushButton('OK')
-        self.layout().children()[0].insertWidget(0, self.ok_button)
-        self.ok_button.clicked.connect(self.submit_and_close)
 
     def edit_row(self, index):
         pass
@@ -439,11 +435,10 @@ class CategoriesArray(RowEditDialog):
         if submited:
             self.close()
 
-class LieuxArrayDialog(RowEditDialog):
+class LieuxArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Lieux')
-        self.exec_()
         self.parent = parent
 
     def edit_row(self, index):
@@ -453,12 +448,11 @@ class LieuxArrayDialog(RowEditDialog):
     def add_row(self):
         LieuForm(None, self.parent.models.lieux)
 
-class MallesTypesDialog(RowEditDialog):
+class MallesTypes(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Malles Types')
         self.view.hideColumn(0) # hide id
-        self.exec_()
 
     def add_row(self):
         self.parent.add_malle_type()
@@ -491,11 +485,10 @@ class MallesTypesDialog(RowEditDialog):
             logging.warning(error.text())
             QMessageBox.warning(self, "Erreur", error.text())
 
-class ProduitsArrayDialog(RowEditDialog):
+class ProduitsArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Produits')
-        self.exec_()
 
     def add_row(self):
         ProductForm(
@@ -733,7 +726,7 @@ class AddInput(MappedQDialog):
                 logging.warning(self.model.tableName()+' '+db_error.text())
             QMessageBox.warning(self, "Erreur", "L'enregistrement a échoué")
 
-class InputsArray(RowEditDialog):
+class InputsArray(RowEdit):
     def __init__(self, parent, model):
         super().__init__(parent, model)
         self.setWindowTitle('Arrivages')
@@ -1048,9 +1041,10 @@ class ContenuMalle(QWidget):
         self.model.submitAll()
 
     def open_malle_log(self):
-        MalleLogArray(self, self.malle_log_model, self.malle_ref)
+        HSaveDialog(
+            self, MalleLogArray(self, self.malle_log_model, self.malle_ref)).exec_()
 
-class MalleLogArray(DisplayTableViewDialog):
+class MalleLogArray(DisplayTableView):
     def __init__(self, parent, model, malle_ref):
         super().__init__(parent, model)
 
@@ -1059,23 +1053,18 @@ class MalleLogArray(DisplayTableViewDialog):
 
         self.view.hideColumn(0) # hide id
         self.view.hideColumn(2) # hide malle_ref
-        
         model.setFilter("malle_ref = '" + malle_ref + "'")
         
         add_button = QPushButton('+')
         remove_button = QPushButton('-')
-        ok_button = QPushButton('OK')
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(add_button)
         button_layout.addWidget(remove_button)
         self.layout().insertLayout(1, button_layout)
-        self.layout().children()[0].insertWidget(0, ok_button)
 
         add_button.clicked.connect(self.add_row)
         remove_button.clicked.connect(self.remove_row)
-        ok_button.clicked.connect(self.submit_and_quit)
-        self.exec_()
 
     def add_row(self):
         def retrieve_current_user_id():
@@ -1099,16 +1088,6 @@ class MalleLogArray(DisplayTableViewDialog):
         selected = self.view.selectionModel()
         row = selected.currentIndex().row()
         self.proxy.removeRow(row)
-
-    def submit_and_quit(self):
-        submited = self.model.submitAll()
-        if submited:
-            self.accept()
-        if not submited:
-            QMessageBox.warning(
-                self, "Erreur", self.model.lastError().text())
-            logging.warning(self.model.lastError().text())
-
 
 class ComboBoxCompleterDelegate(QSqlRelationalDelegate):
     def __init__(self, parent=None, relation_model=2):

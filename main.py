@@ -9,17 +9,16 @@ Logiciel de gestion du matériel pour l'association Diabolo
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import (
     QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog,
-    QInputDialog)
+    QInputDialog, QToolBar)
 from PyQt5.QtGui import QIcon
 from models import (
     Models, MallesTypesWithMalles, Fournisseurs, Inputs, Produits)
 from db import Query
 from views import (
     MalleFormDialog, AddMalleType, AddInput, AddFournisseur, ProductForm,
-    StartupView, DisplayTableViewDialog, MallesArrayDialog, MallesTypesDialog,
-    SejourForm, LieuForm, ReservationForm, UsersArrayDialog, ConfigDialog,
-    ProduitsArrayDialog, InputsArray, LieuxArrayDialog, UserConnect,
-    CategoriesArray)
+    DisplayTableView, MallesArray, MallesTypes,SejourForm, LieuForm, 
+    ReservationForm, UsersArray, ConfigDialog, ProduitsArray, InputsArray, 
+    LieuxArray, UserConnect, CategoriesArray, HCloseDialog, HSaveDialog)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,55 +33,57 @@ class MainWindow(QMainWindow):
     def initUI(self):
 
         menubar = self.menuBar()
+        toolbar = QToolBar("Outils")
+        self.addToolBar(toolbar)
         self.setWindowTitle("Diabolik Stock")
 
         self.actions = {
             'exit':CtrlAction(
-                QIcon(), '&Quitter', qApp.quit, 'Ctrl+Q', db_connected_required=False),
+                '', '&Quitter', qApp.quit, 'Ctrl+Q', db_connected_required=False),
             'connect':CtrlAction(
-                QIcon(), '&Connection', self.connect, 'Ctrl+C', admin_required=False),
+                '', '&Connection', self.connect, 'Ctrl+C', admin_required=False),
             'disconnect':CtrlAction(
-                QIcon(),
+                '',
                 '&Déconnection',
                 self.disconnect_user,
                 'Ctrl+D',
                 db_connected_required=False,
                 admin_required=False),
             'settings':CtrlAction(
-                QIcon(),
+                '',
                 '&Configuration',
                 self.set_config,
                 '',
                 db_connected_required=False,
                 admin_required=False),
             'export_commandes':CtrlAction(
-                QIcon(), '&Commandes', self.export_commandes),
+                '', '&Commandes', self.export_commandes),
             'export_checker': CtrlAction(
-                QIcon(), '&Malle', self.export_checker),
+                '', '&Malle', self.export_checker),
             'export_xlsx_malles': CtrlAction(
-                QIcon(), '&Type', self.export_xlsx_malles),
+                '', '&Type', self.export_xlsx_malles),
             'add_fournisseur': CtrlAction(
-                QIcon(), '&Fournisseur', self.add_fournisseur),
-            'add_produit': CtrlAction(QIcon(), '&Produit', self.add_product),
-            'add_input': CtrlAction(QIcon(),'&Entrée de produit', self.add_input),
+                '', '&Fournisseur', self.add_fournisseur),
+            'add_produit': CtrlAction('', '&Produit', self.add_product),
+            'add_input': CtrlAction('','&Entrée de produit', self.add_input),
             'add_malle_type': CtrlAction(
-                QIcon(), '&Malle type', self.add_malle_type),
-            'add_malle': CtrlAction(QIcon(), '&Malle', self.add_malle),
-            'add_sejour': CtrlAction(QIcon(), '&Séjour', self.add_sejour),
-            'add_reservation': CtrlAction(QIcon(), '&Reservation', self.add_reservation),
+                '', '&Malle type', self.add_malle_type),
+            'add_malle': CtrlAction('', '&Malle', self.add_malle),
+            'add_sejour': CtrlAction('', '&Séjour', self.add_sejour),
+            'add_reservation': CtrlAction('', '&Reservation', self.add_reservation),
             'view_malles': CtrlAction(
-                QIcon(), '&Malles', self.display_malles, admin_required=False),
+                'caisse.png', '&Malles', self.display_malles, admin_required=False),
             'view_categories': CtrlAction(
-                QIcon(), '&Categories', self.display_categories),
+                '', '&Categories', self.display_categories),
             'view_malles_types':CtrlAction(
-                QIcon(), '&Types de malles', self.display_malles_types),
+                'caisse_type', '&Types de malles', self.display_malles_types),
             'view_fournisseurs':CtrlAction(
-                QIcon(), '&Fournisseurs', self.display_fournisseurs),
-            'view_produits':CtrlAction(QIcon(), '&Produits', self.display_produits),
-            'view_inputs':CtrlAction(QIcon(), '&Arrivages', self.display_inputs),
-            'view_sejours':CtrlAction(QIcon(), '&Séjours', self.display_sejours),
-            'view_lieux':CtrlAction(QIcon(), '&lieux', self.display_lieux),
-            'view_users':CtrlAction(QIcon(), '&utilisateurs', self.display_users)
+                'fournisseur.png', '&Fournisseurs', self.display_fournisseurs),
+            'view_produits':CtrlAction('produit.png', '&Produits', self.display_produits),
+            'view_inputs':CtrlAction('input.png', '&Arrivages', self.display_inputs),
+            'view_sejours':CtrlAction('', '&Séjours', self.display_sejours),
+            'view_lieux':CtrlAction('', '&lieux', self.display_lieux),
+            'view_users':CtrlAction('user.png', '&utilisateurs', self.display_users)
         }
 
         fileMenu = menubar.addMenu('&Fichier')
@@ -114,6 +115,15 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.actions['add_sejour'])
         addMenu.addAction(self.actions['add_reservation'])
 
+        toolbar_actions = [
+            'view_malles', 
+            'view_malles_types',
+            'view_fournisseurs',
+            'view_inputs',
+            'view_produits']
+        for action in toolbar_actions:
+            toolbar.addAction(self.actions[action]) 
+
         self.setMinimumSize(850, 300)
         self.show()
         
@@ -123,14 +133,9 @@ class MainWindow(QMainWindow):
         self.connected_user = None
         self.connect()
         self.init_config()
-        self.setCentralWidget(StartupView(self))
 
-    def _add_action(self, name, function_name, shortcut=None):
-        action = CtrlAction(QIcon(), name, function_name)
-        if shortcut:
-            action.setShortcut(shortcut)
-        action.triggered.connect(function_name)
-        return action
+        self.main_malles_view = MallesArray(self, self.models.malles)
+        self.setCentralWidget(self.main_malles_view)
 
     def connect(self):
         connected = self.connect_db()
@@ -218,39 +223,36 @@ class MainWindow(QMainWindow):
         dialog = LieuForm(None, self.models.lieux)
 
     def add_reservation(self):
-        dialog = ReservationForm(None, self.models.reservations)
+        ReservationForm(None, self.models.reservations)
 
     def display_malles(self):
-        MallesArrayDialog(self, self.models.malles)
+        HCloseDialog(self, MallesArray(self, self.models.malles)).exec_()
 
     def display_categories(self):
-        dialog = CategoriesArray(self, self.models.categories)
-        dialog.exec_()
+        HSaveDialog(self, CategoriesArray(self, self.models.categories)).exec_()
 
     def display_malles_types(self):
-        MallesTypesDialog(self, MallesTypesWithMalles())
+        HCloseDialog(self, MallesTypes(self, MallesTypesWithMalles())).exec_()
 
     def display_fournisseurs(self):
-        dialog = DisplayTableViewDialog(self, Fournisseurs(self, self.db.db))
-        dialog.exec_()
+        HCloseDialog(
+            self, DisplayTableView(self, Fournisseurs(self, self.db.db))).exec_()
 
     def display_inputs(self):
-        dialog = InputsArray(self, Inputs(self, self.db.db))
-        dialog.exec_()
+        HCloseDialog(self, InputsArray(self, Inputs(self, self.db.db))).exec_()
 
     def display_produits(self):
-        dialog = ProduitsArrayDialog(self, Produits(self, self.db.db))
+        HCloseDialog(
+            self, ProduitsArray(self, Produits(self, self.db.db))).exec_()
 
     def display_lieux(self):
-        dialog = LieuxArrayDialog(self, self.models.lieux)
+        HCloseDialog(self, LieuxArray(self, self.models.lieux)).exec_()
 
     def display_sejours(self):
-        dialog = DisplayTableViewDialog(self, self.models.sejours)
-        dialog.exec_()
+        HCloseDialog(self, DisplayTableViewDialog(self, self.models.sejours)).exec_()
 
     def display_users(self):
-        dialog = UsersArrayDialog(self, self.models.users)
-        dialog.exec_()
+        HCloseDialog(self, UsersArrayDialog(self, self.models.users)).exec_()
 
     def init_config(self):
         if self.connected_db:
@@ -296,12 +298,12 @@ class MainWindow(QMainWindow):
         if ok:
             filename = self.get_xlsx_filename()
             xlsx_malle.write_file(self.db, type_, filename)
-            
+
 class CtrlAction(QAction):
     """ Action with some access rules """
     def __init__(
         self,
-        icon,
+        image,
         text,
         function,
         shortcut=None,
@@ -309,6 +311,10 @@ class CtrlAction(QAction):
         user_required=True,
         db_connected_required=True,
         ):
+        if image:
+            icon = QIcon('images/' + image)
+        else:
+            icon = QIcon()
         super().__init__(icon, text, None)
         self.admin_required = admin_required
         self.user_required = user_required
