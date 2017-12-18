@@ -188,10 +188,12 @@ INSERT INTO meta(version, creation_date) VALUES(1, CURRENT_DATE);
 
 CREATE VIEW contenu_check AS
     SELECT produits.nom, 
-    contenu_type.quantity as Qtt_p, 
-    contenu_malles.quantity as Qtt_r,
+    contenu_type.quantity as qtt_p, 
+    contenu_malles.quantity as qtt_r,
+    contenu_type.quantity - contenu_malles.quantity as missing,
     etats.etat,
-    contenu_malles.observation
+    contenu_malles.observation,
+    malle_ref
     FROM contenu_malles
     INNER JOIN contenu_type ON contenu_type.id = contenu_malles.contenu_type_id
     INNER JOIN produits ON contenu_type.produit_id = produits.id

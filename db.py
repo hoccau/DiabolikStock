@@ -143,7 +143,7 @@ class Query(QSqlQueryModel):
         return self._query_to_lists(3)
 
     def get_contenu_by_malle(self, malle_ref):
-        self.exec_("SELECT nom, reel, attendu, difference, etat "\
+        self.exec_("SELECT nom, qtt_r, qtt_p, missing, etat "\
         + "FROM contenu_check "\
         + "WHERE malle_ref = '" + malle_ref + "';")
         return self._query_to_lists(5)
