@@ -8,7 +8,7 @@ Logiciel de gestion du matériel pour l'association Diabolo
 
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import (
-    QApplication, qApp, QMainWindow, QAction, QMessageBox, QFileDialog,
+    QApplication, qApp, QMainWindow, QAction, QMessageBox, QDialog, QFileDialog,
     QInputDialog, QToolBar)
 from PyQt5.QtGui import QIcon
 from models import (
@@ -25,6 +25,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+VERSION = '0.1'
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -37,6 +39,7 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Outils")
         self.addToolBar(toolbar)
         self.setWindowTitle("Diabolik Stock")
+        self.setWindowIcon(QIcon('icon.ico'))
 
         self.actions = {
             'exit':CtrlAction(
@@ -54,6 +57,13 @@ class MainWindow(QMainWindow):
                 '',
                 '&Configuration',
                 self.set_config,
+                '',
+                db_connected_required=False,
+                admin_required=False),
+            'about':CtrlAction(
+                '',
+                '&À Propos',
+                self.display_about,
                 '',
                 db_connected_required=False,
                 admin_required=False),
@@ -115,6 +125,8 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.actions['add_malle'])
         addMenu.addAction(self.actions['add_sejour'])
         addMenu.addAction(self.actions['add_reservation'])
+        helpMenu = menubar.addMenu('&Aide')
+        helpMenu.addAction(self.actions['about'])
 
         toolbar_actions = [
             'add_malle', 
@@ -135,24 +147,32 @@ class MainWindow(QMainWindow):
         self.connect()
         self.init_config()
 
-        self.main_malles_view = MallesArray(self, self.models.malles)
-        self.setCentralWidget(self.main_malles_view)
-
     def connect(self):
         connected = self.connect_db()
         if connected:
             logging.info('connected to database')
+            self.main_malles_view = MallesArray(self, self.models.malles)
+            self.setCentralWidget(self.main_malles_view)
             self.connect_user()
 
     def connect_db(self):
         self.connected_db = self.db.connect(self.settings)
         if self.connected_db:
             logging.info('connection à la base de donnée réussie')
+            if not self.db.check_schema():
+                reply = QMessageBox.question(
+                    self, 
+                    'Aucune table trouvée',
+                    "Faut-il créer un nouveauprojet ?")
+                if reply == QMessageBox.Yes:
+                    self.db.create_tables()
+                else:
+                    return False
             self.models = Models(self.db.db)
             return True
         else:
-            QMessageBox.warning(self, "Erreur", "La connection à\
-            la base de données a échouée.")
+            QMessageBox.warning(self, "Erreur", "La connection à "\
+            + "la base de données a échouée.")
             ok = ConfigDialog(self, self.settings).result()
             if ok:
                 self.connect_db()
@@ -255,6 +275,9 @@ class MainWindow(QMainWindow):
     def display_users(self):
         HCloseDialog(self, UsersArrayDialog(self, self.models.users)).exec_()
 
+    def display_about(self):
+        QMessageBox.about(self, 'À propos', 'DiabolikStock version ' + VERSION)
+
     def init_config(self):
         if self.connected_db:
             self.db.enable_autostock(self.settings.value('autostock'))
@@ -336,5 +359,7 @@ if __name__ == '__main__':
     logger.addHandler(stdout_handler)
     
     app = QApplication(sys.argv)
+    app.setApplicationVersion(VERSION)
+    app.setApplicationName('Diabolik Stock')
     main_window = MainWindow()
     sys.exit(app.exec_())

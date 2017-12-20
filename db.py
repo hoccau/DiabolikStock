@@ -43,6 +43,22 @@ class Query(QSqlQueryModel):
             if req == False:
                 logging.warning(self.query.lastError().databaseText())
         return req
+    
+    def check_schema(self):
+        """ Check if tables are created (must be improved...) """
+        query = QSqlQuery(
+            "select count(tablename) from pg_tables WHERE schemaname = 'public'")
+        if query.next():
+            if query.value(0) > 0:
+                logging.info('%i tables dans la base de données', query.value(0))
+                return True
+        logging.warning("Les tables semblent inexistantes...")
+        return False
+
+    def create_tables(self):
+        with open('create_tables.sql', 'r', encoding='utf-8') as create_tables_file:
+            r = create_tables_file.read()
+            self.exec_(r)
 
     def get_fournisseurs(self):
         self.query.exec_("SELECT NOM, ID FROM fournisseurs")
@@ -149,7 +165,6 @@ class Query(QSqlQueryModel):
         return self._query_to_lists(5)
 
     def enable_autostock(self, value):
-        logging.debug(value)
         if value:
             self.exec_("ALTER TABLE inputs ENABLE TRIGGER insert_input")
             self.exec_("ALTER TABLE contenu_malles ENABLE TRIGGER "\

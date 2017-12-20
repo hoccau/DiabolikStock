@@ -386,7 +386,9 @@ class UserDialog(QDialog):
                 self.model.index(self.model.rowCount() -1, 0))
             group_id = self.group.currentIndex() + 1
             self.model.set_group(user_id, group_id)
-        self.accept()
+            self.accept()
+        else:
+            QMessageBox.warning(self, 'Erreur', self.model.lastError().text())
 
 class MallesArray(RowEdit):
     def __init__(self, parent, model):
