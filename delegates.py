@@ -7,6 +7,7 @@ Diabolik Stock | QT Delegates
 
 from PyQt5.QtWidgets import QStyledItemDelegate, QItemDelegate, QComboBox
 from PyQt5.QtSql import QSqlRelationalDelegate
+from PyQt5.QtCore import Qt
 
 class EtatDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
