@@ -184,10 +184,11 @@ class ConfigDialog(QDialog):
     def write_and_quit(self):
         self.settings.setValue('db/host', self.db_hostname.text())
         self.settings.setValue('db/name', self.db_name.text())
-        self.settings.setValue('db/port', int(self.db_port.text()))
+        self.settings.setValue('db/port', self.db_port.text())
         self.settings.setValue('db/user', self.db_user.text())
         self.settings.setValue('db/password', self.db_password.text())
         self.settings.setValue('autostock', self.auto_stock.isChecked())
+        logging.info('Config values updated')
         self.parent().init_config()
         self.accept()
 
