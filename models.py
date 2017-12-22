@@ -176,6 +176,7 @@ class MallesTypes(QSqlTableModel):
 
         self.setTable('malles_types')
         self.setHeaderData(1, Qt.Horizontal, "Dénomination")
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
 class MallesTypesWithMalles(QSqlQueryModel):
@@ -217,7 +218,7 @@ class ContenuType(QSqlRelationalTableModel):
             2, QSqlRelation('produits', 'id', 'nom'))
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
-
+    
 class Sejours(QSqlRelationalTableModel):
     def __init__(self, parent, db):
         super().__init__(parent, db)

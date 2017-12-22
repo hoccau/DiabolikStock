@@ -874,6 +874,10 @@ class MalleForm(MappedQDialog):
         self.malle_log_model = models.malle_log
         self.db = parent.db
 
+        # To fix bug: newly created type_id doesn't save. 
+        # TODO: Must find better trick...
+        model.relationModel(2).select()
+
         self.widgets['reference'] = QLineEdit()
         self.widgets['category_id'] = QComboBox()
         self.widgets['type_id'] = QComboBox()
@@ -1117,6 +1121,7 @@ class AddMalleType(MappedQDialog):
     def submited(self):
         submited = self.mapper.submit()
         if submited:
+            self.model.submitAll()
             self.model.select()
             self.accept()
             type_id = self.model.record(self.model.rowCount() -1).value(0)
@@ -1175,6 +1180,7 @@ class ContenuType(QDialog):
         
     def submit_row(self):
         submited = self.model.submitAll()
+        logging.debug(self.model.query().lastQuery())
         if not submited:
             error = self.model.lastError()
             logging.warning(error.text())
