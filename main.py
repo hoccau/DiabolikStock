@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-VERSION = '0.1'
+VERSION = '0.2'
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
