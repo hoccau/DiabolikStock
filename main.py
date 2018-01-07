@@ -21,9 +21,7 @@ from views import (
     LieuxArray, UserConnect, CategoriesArray, HCloseDialog, HSaveDialog,
     FournisseursArray)
 import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+from utils import get_logger
 
 VERSION = '0.2'
 
@@ -67,6 +65,8 @@ class MainWindow(QMainWindow):
                 '',
                 db_connected_required=False,
                 admin_required=False),
+            'import_xlsx_malles':CtrlAction(
+                '', '&Malles (Excel)', self.import_xlsx_malles),
             'export_commandes':CtrlAction(
                 '', '&Commandes', self.export_commandes),
             'export_checker': CtrlAction(
@@ -105,6 +105,8 @@ class MainWindow(QMainWindow):
         export_pdf_menu.addAction(self.actions['export_checker'])
         export_xlsx_menu = fileMenu.addMenu('&Exporter en Excel')
         export_xlsx_menu.addAction(self.actions['export_xlsx_malles'])
+        import_menu = fileMenu.addMenu('&Importer')
+        import_menu.addAction(self.actions['import_xlsx_malles'])
         fileMenu.addAction(self.actions['exit'])
         edit_menu = menubar.addMenu('&Édition')
         edit_menu.addAction(self.actions['settings'])
@@ -298,6 +300,18 @@ class MainWindow(QMainWindow):
                 filename += '.xlsx'
         return filename
 
+    def import_xlsx_malles(self):
+        from xlsx_parser import transfert_data
+        filename, _format = QFileDialog.getOpenFileName(
+            self, "Ouvrir un fichier Excel", None, "XLSX(*.xlsx)")
+        logging.debug(filename)
+        log = transfert_data(filename, self.db)
+        self.models.malles.select()
+        message = QMessageBox(self)
+        #minformation(self, 'Erreurs', '')
+        message.setDetailedText(log)
+        message.exec_()
+
     def export_commandes(self):
         from export import commandes
         filename = self.get_pdf_filename()
@@ -350,14 +364,8 @@ class CtrlAction(QAction):
 
 if __name__ == '__main__':
     import sys
-    
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setFormatter(
-        logging.Formatter('%(levelname)s::%(module)s:%(lineno)d :: %(message)s'))
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(stdout_handler)
-    
+   
+    get_logger()
     app = QApplication(sys.argv)
     app.setApplicationVersion(VERSION)
     app.setApplicationName('Diabolik Stock')
