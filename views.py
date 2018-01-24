@@ -116,11 +116,12 @@ class HSaveDialog(HCloseDialog):
     
     def save_and_quit(self):
         submited = self.main_widget.model.submitAll()
+        if submited:
+            self.accept()
         if not submited:
-            error = self.model.lastError()
+            error = self.main_widget.model.lastError()
             logging.warning(error.text())
             QMessageBox.warning(self, "Erreur", error.text())
-        self.accept()
 
     def revert_and_quit(self):
         self.main_widget.model.revertAll()
