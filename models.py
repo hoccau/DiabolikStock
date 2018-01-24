@@ -64,6 +64,7 @@ class Produits(QSqlRelationalTableModel):
         self.setTable('produits')
         self.setRelation(2, QSqlRelation('fournisseurs', 'id', 'nom'))
         self.setJoinMode(QSqlRelationalTableModel.LeftJoin)
+        self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
 class Inputs(QSqlRelationalTableModel):

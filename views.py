@@ -634,7 +634,8 @@ class ProductForm(MappedQDialog):
         self.model.relationModel(2).select()
 
     def submited(self):
-        submited = self.mapper.submit()
+        mapper_submited = self.mapper.submit()
+        submited = self.model.submitAll()
         if submited:
             logging.info('produit added.')
             self.accept()
