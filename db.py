@@ -164,6 +164,37 @@ class Query(QSqlQueryModel):
         + "WHERE malle_ref = '" + malle_ref + "';")
         return self._query_to_lists(5)
 
+    def set_malles_categorie(self, categorie, malles_ref):
+        if malles_ref and categorie:
+            res = self.exec_("UPDATE malles SET category_id = "\
+            + "(SELECT id FROM categories WHERE name = '" + categorie + "') "\
+            + "WHERE reference in ('" + '\',\''.join(malles_ref) + "')")
+            if res:
+                return True
+            else:
+                logging.debug(self.lastError().text())
+                return False
+
+    def set_log_batch(self, user_name, message, malles_ref):
+        if message and malles_ref:
+            self.exec_("SELECT id FROM users WHERE name = '" + user_name + "'")
+            if self.query.next():
+                user_id = self.query.value(0)
+            else:
+                return False
+            ins = []
+            for m in malles_ref:
+                ins.append('(' + str(user_id) + ", '" + m\
+                +"', current_timestamp, '" + message + "')")
+            res = self.exec_("INSERT INTO malle_log( "\
+            + "user_id, malle_ref, date_check, observation) "\
+            + "VALUES " + ",".join(ins))
+            if res:
+                return True
+            else:
+                logging.debug(self.lastError().text())
+                return False
+
     def enable_autostock(self, value):
         if value:
             self.exec_("ALTER TABLE inputs ENABLE TRIGGER insert_input")
@@ -175,7 +206,6 @@ class Query(QSqlQueryModel):
             self.exec_("ALTER TABLE contenu_malles DISABLE TRIGGER "\
             + " update_stock_after_update_contenu")
             logging.info('autostock disabled')
-
 
 if __name__ == '__main__':
     

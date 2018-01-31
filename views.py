@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QFormLayout, QGridLayout, QDialogButtonBox, QMessageBox, QComboBox, 
     QSpinBox, QDoubleSpinBox, QTableView, QAbstractItemView, QHBoxLayout, 
     QVBoxLayout, QLabel, QWidget, QCalendarWidget, QToolButton, QGroupBox, 
-    QCheckBox)
+    QCheckBox, QMenu, QInputDialog)
 from PyQt5.QtCore import (
     QDate, QDateTime, QByteArray, QSize, Qt, QVariant, QSortFilterProxyModel, 
     QMessageAuthenticationCode)
@@ -192,13 +192,23 @@ class ConfigDialog(QDialog):
         logging.info('Config values updated')
         self.parent().init_config()
         self.accept()
+        
+class TableViewWithContextMenu(QTableView):
+    def __init__(self):
+        super().__init__()
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenuEvent)
+        self.context_menu = QMenu(self)
+
+    def contextMenuEvent(self, pos):
+        self.context_menu.popup(self.viewport().mapToGlobal(pos))
 
 class DisplayTableView(QWidget):
     def __init__(self, parent, model):
         QWidget.__init__(self, parent)
         
         self.model = model
-        self.view = QTableView()
+        self.view = TableViewWithContextMenu()
         self.proxy = QSortFilterProxyModel()
         self.proxy.setSourceModel(model)
         self.view.setModel(self.proxy)
@@ -220,6 +230,7 @@ class RowEdit(DisplayTableView):
         self.view.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.view.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.view.doubleClicked.connect(self.edit_row)
+
 
         add_button = QPushButton('+')
         remove_button = QPushButton('-')
@@ -398,6 +409,46 @@ class MallesArray(RowEdit):
         self.setWindowTitle('Malles')
         self.resize(750, 400)
         self.parent = parent
+        self.view.context_menu.addAction(
+            'Changer la catégorie', self.batch_change_categorie)
+        self.view.context_menu.addAction(
+            'Ajouter au journal', self.batch_add_log_message)
+        
+    def batch_change_categorie(self):
+        categories = []
+        for i in range(self.model.relationModel(1).rowCount()):
+            categories.append(
+                self.model.relationModel(1).index(i, 1).data())
+        categorie, res = QInputDialog().getItem(
+            self, 'Categorie', 'Categorie', categories)
+        if not res:
+            return False
+        references = self._get_selected_references()
+        success = self.parent.db.set_malles_categorie(categorie, references)
+        if success:
+            self.parent.models.malles.select()
+            QMessageBox.information(
+                None, "Opération réalisée",
+                "Catégorie changée pour les malles selectionnées")
+    
+    def batch_add_log_message(self):
+        message, res = QInputDialog().getText(self, "Message", "Observation")
+        if not res:
+            return False
+        references = self._get_selected_references()
+        user, group = self.parent.connected_user
+        success = self.parent.db.set_log_batch(user, message, references)
+        if success:
+            self.parent.models.malle_log.select()
+            QMessageBox.information(
+                None, "Opération réalisée",
+                "Journeaux ajoutés pour les malles selectionnées")
+    
+    def _get_selected_references(self):
+        """ return a list of references for the curently selected rows """
+        select = self.view.selectionModel()
+        indexes = [self.proxy.mapToSource(idx) for idx in select.selectedRows()]
+        return [idx.data() for idx in indexes]
 
     def add_row(self):
         self.parent.add_malle()
