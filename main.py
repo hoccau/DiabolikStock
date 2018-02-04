@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
         ReservationForm(None, self.models.reservations)
 
     def display_malles(self):
-        HCloseDialog(self, MallesArray(self, self.models.malles)).exec_()
+        HSaveDialog(self, MallesArray(self, self.models.malles)).exec_()
 
     def display_categories(self):
         HSaveDialog(self, CategoriesArray(self, self.models.categories)).exec_()
