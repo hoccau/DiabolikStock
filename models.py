@@ -55,6 +55,7 @@ class Fournisseurs(QSqlTableModel):
         super(Fournisseurs, self).__init__(parent, db)
         
         self.setTable('fournisseurs')
+        self.setHeaderData(3, Qt.Horizontal, "Téléphone")
         self.select()
 
 class Produits(QSqlRelationalTableModel):
@@ -169,6 +170,8 @@ class MalleLog(QSqlRelationalTableModel):
         self.setTable('malle_log')
         self.setRelation(
             1, QSqlRelation('users', 'id', 'name'))
+        self.setHeaderData(1, Qt.Horizontal, "Utilisateur")
+        self.setHeaderData(2, Qt.Horizontal, "Date")
         self.setEditStrategy(QSqlTableModel.OnManualSubmit)
         self.select()
 
