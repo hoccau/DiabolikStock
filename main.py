@@ -23,7 +23,7 @@ from views import (
 import logging
 from utils import get_logger
 
-VERSION = '0.3'
+VERSION = '0.4'
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.actions['view_fournisseurs'])
         view_menu.addAction(self.actions['view_produits'])
         view_menu.addAction(self.actions['view_inputs'])
-        view_menu.addAction(self.actions['view_sejours'])
+        #view_menu.addAction(self.actions['view_sejours'])
         view_menu.addAction(self.actions['view_lieux'])
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.actions['add_fournisseur'])
@@ -125,8 +125,8 @@ class MainWindow(QMainWindow):
         addMenu.addAction(self.actions['add_input'])
         addMenu.addAction(self.actions['add_malle_type'])
         addMenu.addAction(self.actions['add_malle'])
-        addMenu.addAction(self.actions['add_sejour'])
-        addMenu.addAction(self.actions['add_reservation'])
+        #addMenu.addAction(self.actions['add_sejour'])
+        #addMenu.addAction(self.actions['add_reservation'])
         helpMenu = menubar.addMenu('&Aide')
         helpMenu.addAction(self.actions['about'])
 
