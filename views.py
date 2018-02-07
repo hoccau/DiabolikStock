@@ -190,8 +190,12 @@ class ConfigDialog(QDialog):
         self.settings.setValue('db/password', self.db_password.text())
         self.settings.setValue('autostock', self.auto_stock.isChecked())
         logging.info('Config values updated')
-        self.parent().init_config()
         self.accept()
+
+    def accept(self):
+        """ update values before quit """
+        self.parent().db.enable_autostock(self.auto_stock.isChecked())
+        super().accept()
         
 class TableViewWithContextMenu(QTableView):
     def __init__(self):

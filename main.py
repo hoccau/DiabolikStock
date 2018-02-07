@@ -201,6 +201,13 @@ class MainWindow(QMainWindow):
         self.connected_user = None
         self.actions['connect'].setEnabled(True)
 
+    def init_config(self):
+        if self.connected_db:
+            if self.settings.value('autostock') == 'true':
+                self.db.enable_autostock(True)
+            elif self.settings.value('autostock') == 'false':
+                self.db.enable_autostock(False)
+
     def activate_actions(self):
         def verify_db_and_enable(action):
             if not action.db_connected_required or self.connected_db:
@@ -279,10 +286,6 @@ class MainWindow(QMainWindow):
 
     def display_about(self):
         QMessageBox.about(self, 'À propos', 'DiabolikStock version ' + VERSION)
-
-    def init_config(self):
-        if self.connected_db:
-            self.db.enable_autostock(self.settings.value('autostock'))
 
     def get_pdf_filename(self):
         filename, _format = QFileDialog.getSaveFileName(
