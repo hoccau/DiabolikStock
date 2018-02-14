@@ -23,7 +23,7 @@ from views import (
 import logging
 from utils import get_logger
 
-VERSION = '0.4'
+VERSION = '0.5'
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
