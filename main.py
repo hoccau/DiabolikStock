@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.actions['view_fournisseurs'])
         view_menu.addAction(self.actions['view_produits'])
         view_menu.addAction(self.actions['view_inputs'])
-        #view_menu.addAction(self.actions['view_sejours'])
+        view_menu.addAction(self.actions['view_users'])
         view_menu.addAction(self.actions['view_lieux'])
         addMenu = menubar.addMenu('&Ajouter')
         addMenu.addAction(self.actions['add_fournisseur'])
@@ -282,7 +282,7 @@ class MainWindow(QMainWindow):
         HCloseDialog(self, DisplayTableViewDialog(self, self.models.sejours)).exec_()
 
     def display_users(self):
-        HCloseDialog(self, UsersArrayDialog(self, self.models.users)).exec_()
+        HCloseDialog(self, UsersArray(self, self.models.users)).exec_()
 
     def display_about(self):
         QMessageBox.about(self, 'À propos', 'DiabolikStock version ' + VERSION)
