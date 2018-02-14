@@ -24,7 +24,20 @@ def header():
 
 def html_commande(db):
     html = ''
-    db.exec_("SELECT * FROM bon_de_commande")
+    db.exec_(" SELECT \
+    fournisseurs.nom AS fournisseur, \
+    fournisseurs.email, \
+    fournisseurs.phone, \
+    produits.nom, \
+    sum(contenu_type.quantity - contenu_malles.quantity) AS quantity \
+    FROM contenu_malles \
+    LEFT JOIN contenu_type ON contenu_type.id = contenu_malles.contenu_type_id \
+    LEFT JOIN malles ON malles.reference::text = contenu_malles.malle_ref::text \
+    INNER JOIN produits ON produits.id = contenu_type.produit_id \
+    LEFT JOIN fournisseurs ON fournisseurs.id = produits.fournisseur_id \
+    WHERE malles.type_id = contenu_type.type_id \
+    AND contenu_type.quantity - contenu_malles.quantity > 0 \
+    GROUP BY produits.nom, fournisseurs.nom, fournisseurs.email, fournisseurs.phone")
     res = db._query_to_lists(5)
     fournisseurs = list(set([tuple(i[0:3]) for i in res]))
     logging.debug('fournisseurs:' + str(fournisseurs))
