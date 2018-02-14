@@ -338,7 +338,8 @@ class MainWindow(QMainWindow):
         type_, ok = QInputDialog.getText(self, '', 'Entrez le type')
         if ok:
             filename = self.get_xlsx_filename()
-            xlsx_malle.write_file(self.db, type_, filename)
+            if filename:
+                xlsx_malle.write_file(self.db, type_, filename)
 
 class CtrlAction(QAction):
     """ Action with some access rules """
