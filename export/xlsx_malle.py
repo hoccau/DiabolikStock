@@ -39,6 +39,9 @@ def write_file(query, type_, filename):
     ws_malles = []
 
     for malle in malles:
+        # remove special chars not authorized un sheets
+        special_chars = ['[', ']','*', '?', ':', '/', '\\']
+        malle = ''.join([i for i in malle if i not in special_chars])   
         wb.create_sheet(malle)
         ws_malles.append(wb.get_sheet_by_name(malle))
         sheet = ws_malles[-1]
